@@ -4,9 +4,6 @@
         xmlns:c="clr-namespace:Mastery.Utilities"
         xmlns:p="clr-namespace:Mastery.Properties"
         Title="Mastery" Height="130" Width="525" ResizeMode="NoResize" MaxHeight="130" MinWidth="350" MaxWidth="1500" Closed="Window_Closed" WindowStyle="None" MinHeight="130">
-    <Window.Resources>
-        <c:ValueToString x:Key="ValueToString"/>
-    </Window.Resources>
     <Grid Background="LightGray">
         <DockPanel VerticalAlignment="Top" Height="20">
             <Grid>
@@ -17,17 +14,15 @@
                 </Grid.ColumnDefinitions>
                 <Menu Grid.Column="0" DockPanel.Dock="Top" Background="white">
                     <MenuItem Header="_File">
-                        <MenuItem Header="Clear" Command="{Binding Clear}"/>
+                        <MenuItem Header="Clear" Command="{Binding Clear}" ToolTip="Reset to defaults"/>
                         <Separator/>
-                        <MenuItem Header="E_xit" Command="{Binding Shutdown}"/>
+                        <MenuItem Header="E_xit" Command="{Binding Shutdown}" ToolTip="Exit the application"/>
                     </MenuItem>
                     <MenuItem Header="_Project">
                         <MenuItem Header="_New" Command="{Binding NewProject}"/>
-                        <MenuItem Header="_Load" Command="{Binding Load}"/>
+                        <MenuItem Header="_Open" Command="{Binding Load}"/>
                         <MenuItem Header="_Save" Command="{Binding Save}"/>
                         <MenuItem Header="_Details"/>
-                        <Separator/>
-                        <MenuItem Header="_Close"/>
                     </MenuItem>
                     <MenuItem Header="_Help">
                         <MenuItem Header="_About"/>

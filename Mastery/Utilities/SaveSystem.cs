@@ -10,10 +10,10 @@ namespace Mastery.Utilities
 {
     public class SaveSystem
     {
-        static public void Save(ProjectModel project)
+        static public bool Save(ProjectModel project)
         {
             string fileName = "";
-            if (OpenMainFile(out fileName))
+            if (SaveFile(out fileName))
             {
                 using (BinaryWriter writer = new BinaryWriter(File.Open(fileName, FileMode.Create)))
                 {
@@ -28,6 +28,27 @@ namespace Mastery.Utilities
                     writer.Write(project.TargetHours);
                     writer.Write(project.ElapsedTime);
                 }
+                Properties.Settings.Default.HasLoadPath = true;
+                Properties.Settings.Default.LastLoadPath = fileName;
+                return true;
+            }
+            return false;
+        }
+
+        static public void SaveNoPrompt(ProjectModel project)
+        {
+            using (BinaryWriter writer = new BinaryWriter(File.Open(Properties.Settings.Default.LastLoadPath, FileMode.Create)))
+            {
+                writer.Write(Encoding.UTF8.GetBytes("MPF0")); // magic
+                writer.Write(project.Task.Count());
+                writer.Write(Encoding.UTF8.GetBytes(project.Task));
+                writer.Write(DateTime.Now.Month);
+                writer.Write(DateTime.Now.Day);
+                writer.Write(DateTime.Now.Year);
+                writer.Write(DateTime.Now.Hour);
+                writer.Write(DateTime.Now.Minute);
+                writer.Write(project.TargetHours);
+                writer.Write(project.ElapsedTime);
             }
         }
 
@@ -53,6 +74,8 @@ namespace Mastery.Utilities
                 project.TargetHours = reader.ReadDouble();
                 project.ElapsedTime = reader.ReadDouble();
             }
+            Properties.Settings.Default.HasLoadPath = true;
+            Properties.Settings.Default.LastLoadPath = loadPath;
             return project;
         }
 
@@ -82,6 +105,8 @@ namespace Mastery.Utilities
                     project.ElapsedTime = reader.ReadDouble();
                 }
             }
+            Properties.Settings.Default.HasLoadPath = true;
+            Properties.Settings.Default.LastLoadPath = fileName;
             return project;
         }
 
@@ -93,6 +118,21 @@ namespace Mastery.Utilities
             if (openFileDialog.ShowDialog() == true)
             {
                 outPath = openFileDialog.FileName;
+                return true;
+            }
+
+            outPath = "";
+            return false;
+        }
+
+        static private bool SaveFile(out string outPath)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "Mastery Project File (*.MPF)|*.MPF";
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                outPath = saveFileDialog.FileName;
                 return true;
             }
 

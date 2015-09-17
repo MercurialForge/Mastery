@@ -24,6 +24,7 @@ namespace Mastery.ViewModels
                 OnPropertyChanged("TargetHours");
                 OnPropertyChanged("TaskTitle");
                 OnPropertyChanged("CurrentHour");
+                UpdateView();
             }
         }
 
@@ -90,6 +91,8 @@ namespace Mastery.ViewModels
         private Timer m_intervalTimer = new Timer();
         private Timer m_backupTimer = new Timer();
 
+        private DateTime m_beginning;
+
         #region Methods
         public MainWindowViewModel()
         {
@@ -121,7 +124,17 @@ namespace Mastery.ViewModels
         }
         private void DoShutdown()
         {
-            SaveSystem.Save(CurrentProject);
+            if (Properties.Settings.Default.HasLoadPath)
+            {
+                if (File.Exists(Properties.Settings.Default.LastLoadPath))
+                {
+                    SaveSystem.SaveNoPrompt(CurrentProject);
+                }
+            }
+            else
+            {
+                SaveSystem.Save(CurrentProject);
+            }
             Application.Current.Shutdown();
         }
 
@@ -144,9 +157,11 @@ namespace Mastery.ViewModels
             if (m_isTimerRunning) { ToggleButton(); }
             ButtonText = "Start";
             DisplayedPercentage = "0.000%";
+            ProgressBarCurrentValue = 0;
             CurrentProject = new ProjectModel();
             Properties.Settings.Default.Reset();
             OnPropertyChanged("TargetHours");
+            Properties.Settings.Default.Reset();
         }
 
         public ICommand ProcessButton
@@ -168,13 +183,14 @@ namespace Mastery.ViewModels
                 m_intervalTimer.Enabled = true;
                 m_dtStopwatch.Start();
                 m_isTimerRunning = true;
+                m_beginning = DateTime.Now;
             }
         }
 
         private void Tick(Object source, System.Timers.ElapsedEventArgs e)
         {
-            CurrentProject.ElapsedTime += m_dtStopwatch.ElapsedMilliseconds;
-            m_dtStopwatch.Restart();
+            CurrentProject.ElapsedTime += (DateTime.Now - m_beginning).TotalMilliseconds;
+            m_beginning = DateTime.Now;
             double target = CurrentProject.TargetHours * 3600000.0;
             ProgressBarCurrentValue = (CurrentProject.ElapsedTime / target) * 100;
             DisplayedPercentage = ((ProgressBarCurrentValue >= 100) ? 100 : ProgressBarCurrentValue).ToString("F4") + "%";
@@ -196,7 +212,7 @@ namespace Mastery.ViewModels
                 }
                 else
                 {
-                    MessageBox.Show("Previously save .MPF file could not be found please load it again!");
+                    MessageBox.Show("Previously used .MPF could not be found. If you moved it please open it again! Or create a new one.");
                 }
             }
             UpdateView();

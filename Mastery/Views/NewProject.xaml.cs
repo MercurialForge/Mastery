@@ -1,5 +1,6 @@
 ﻿using Mastery.Utilities;
 using Mastery.ViewModels;
+using System;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -40,7 +41,7 @@ namespace Mastery.Views
 
         private static bool TestForNumeric(string text)
         {
-            Regex regex = new Regex("[^0-9.-]+"); //regex that matches disallowed text
+            Regex regex = new Regex(@"[^\d]"); //regex that matches disallowed text
             return !regex.IsMatch(text);
         }
 
@@ -49,8 +50,10 @@ namespace Mastery.Views
             ProjectModel project = new ProjectModel();
             project.Task = TaskText.Text;
             project.TargetHours = int.Parse(HoursValue.Text);
-            mainVM.CurrentProject = project;
-            SaveSystem.Save(project);
+            if (SaveSystem.Save(project))
+            {
+                mainVM.CurrentProject = project;
+            }
             Close();
         }
 

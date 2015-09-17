@@ -34,7 +34,7 @@ namespace Mastery.Utilities
         {
             Task = "Drawing";
             StartDate = DateTime.Now;
-            TargetHours = 5000.0;
+            TargetHours = 5000;
             ElapsedTime = 0.0;
         }
     }
