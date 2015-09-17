@@ -25,25 +25,25 @@ namespace Mastery.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
-        public double TargetHours {
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastLoadPath {
             get {
-                return ((double)(this["TargetHours"]));
+                return ((string)(this["LastLoadPath"]));
             }
             set {
-                this["TargetHours"] = value;
+                this["LastLoadPath"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double ElapsedTime {
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool HasLoadPath {
             get {
-                return ((double)(this["ElapsedTime"]));
+                return ((bool)(this["HasLoadPath"]));
             }
             set {
-                this["ElapsedTime"] = value;
+                this["HasLoadPath"] = value;
             }
         }
     }

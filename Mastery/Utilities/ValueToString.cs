@@ -7,12 +7,11 @@ using System.Windows.Data;
 
 namespace Mastery.Utilities
 {
-    public class HoursToMilliseconds : IValueConverter
+    public class ValueToString : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            TimeSpan t = new TimeSpan((int)(double)value, 0, 0);
-            return t.TotalMilliseconds;
+            return ((int)value).ToString();
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)

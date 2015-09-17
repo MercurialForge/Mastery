@@ -8,78 +8,111 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Input;
+using Mastery.Views;
+using System.IO;
 
 namespace Mastery.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
-        public double ProgressBarCurrentValue
+        public ProjectModel CurrentProject
         {
-            get
-            {
-                return _progressValue;
-            }
+            get { return _projectModel; }
             set
             {
-                _progressValue = value;
-                OnPropertyChanged("ProgressBarCurrentValue");
+                _projectModel = value;
+                OnPropertyChanged("TargetHours");
+                OnPropertyChanged("TaskTitle");
+                OnPropertyChanged("CurrentHour");
             }
+        }
+
+        public int CurrentHour 
+        { 
+            get { return CurrentProject.CurrentHour; } 
         }
         public double TargetHours
         {
-            get { return _targetHours; }
+            get { return CurrentProject.TargetHours; }
+        }
+        public double ProgressBarCurrentValue 
+        {
+            get { return m_progressBarCurrentValue; }
             set
             {
-                _targetHours = value;
-                OnPropertyChanged("TargetHours");
+                m_progressBarCurrentValue = value;
+                OnPropertyChanged("ProgressBarCurrentValue");
             }
         }
-        private double _progressValue = 0;
-        private double _targetHours = 0.01f;
-
-        public String ButtonText 
-        { 
-            get 
-            { 
-                return _buttonText; 
-            } 
-            set 
-            { 
-                _buttonText = value;
+        public String ButtonText
+        {
+            get
+            {
+                return m_buttonText;
+            }
+            set
+            {
+                m_buttonText = value;
                 OnPropertyChanged("ButtonText");
-            } 
+            }
         }
         public String DisplayedPercentage
         {
-            get { return m_percentage; }
+            get { return m_displayedPercentage; }
             set
             {
-                m_percentage = value;
+                m_displayedPercentage = value;
                 OnPropertyChanged("DisplayedPercentage");
             }
         }
-        private string _buttonText = "Start";
-        private string m_percentage = "0.000%";
-
+        public string TaskTitle
+        { 
+            get { return "Task: " + CurrentProject.Task; }
+        }
         private double ElapsedTime
         {
-            get { return m_elapsedTime; }
+            get { return CurrentProject.ElapsedTime; }
             set
             {
-                m_elapsedTime = value;
-                Properties.Settings.Default.ElapsedTime = m_elapsedTime;
+                CurrentProject.ElapsedTime = value;
             }
         }
-        private double m_elapsedTime;
+
+        #region Backing Fields
+        private ProjectModel _projectModel = new ProjectModel();
+        private string m_buttonText = "Start";
+        private string m_displayedPercentage = "0.000%"; 
+        private double m_progressBarCurrentValue = 0;
+        #endregion
 
         private bool m_isTimerRunning = false;
         private Stopwatch m_dtStopwatch = new Stopwatch();
         private Timer m_intervalTimer = new Timer();
         private Timer m_backupTimer = new Timer();
 
-        public MainWindowViewModel ()
+        #region Methods
+        public MainWindowViewModel()
         {
             Initialize();
+        }
+
+        public ICommand Save
+        {
+            get { return new RelayCommand(x => DoSave()); }
+        }
+        private void DoSave()
+        {
+            SaveSystem.Save(CurrentProject);
+        }
+
+        public ICommand Load
+        {
+            get { return new RelayCommand(x => DoLoad()); }
+        }
+        private void DoLoad()
+        {
+            CurrentProject = SaveSystem.Load();
+            UpdateView();
         }
 
         public ICommand Shutdown
@@ -88,7 +121,18 @@ namespace Mastery.ViewModels
         }
         private void DoShutdown()
         {
+            SaveSystem.Save(CurrentProject);
             Application.Current.Shutdown();
+        }
+
+        public ICommand NewProject
+        {
+            get { return new RelayCommand(x => CreateNewProject()); }
+        }
+        private void CreateNewProject()
+        {
+            NewProject newProjectWindow = new NewProject(this);
+            newProjectWindow.Show();
         }
 
         public ICommand Clear
@@ -99,18 +143,19 @@ namespace Mastery.ViewModels
         {
             if (m_isTimerRunning) { ToggleButton(); }
             ButtonText = "Start";
-            m_elapsedTime = 0;
-            ProgressBarCurrentValue = 0;
             DisplayedPercentage = "0.000%";
+            CurrentProject = new ProjectModel();
+            Properties.Settings.Default.Reset();
+            OnPropertyChanged("TargetHours");
         }
 
         public ICommand ProcessButton
         {
             get { return new RelayCommand(x => ToggleButton()); }
         }
-        private void ToggleButton ()
+        private void ToggleButton()
         {
-            if(m_isTimerRunning)
+            if (m_isTimerRunning)
             {
                 ButtonText = "Continue";
                 m_intervalTimer.Enabled = false;
@@ -128,27 +173,36 @@ namespace Mastery.ViewModels
 
         private void Tick(Object source, System.Timers.ElapsedEventArgs e)
         {
-            ElapsedTime += m_dtStopwatch.ElapsedMilliseconds;
+            CurrentProject.ElapsedTime += m_dtStopwatch.ElapsedMilliseconds;
             m_dtStopwatch.Restart();
-            double target = Properties.Settings.Default.TargetHours * 3600000.0;
-            ProgressBarCurrentValue = (ElapsedTime / target) * 100;
+            double target = CurrentProject.TargetHours * 3600000.0;
+            ProgressBarCurrentValue = (CurrentProject.ElapsedTime / target) * 100;
             DisplayedPercentage = ((ProgressBarCurrentValue >= 100) ? 100 : ProgressBarCurrentValue).ToString("F4") + "%";
+            OnPropertyChanged("CurrentHour");
         }
 
         private void TickBackUp(Object source, System.Timers.ElapsedEventArgs e)
         {
             Properties.Settings.Default.Save();
-            Console.WriteLine("Back Up Tick");
         }
 
         private void Initialize()
         {
-            m_elapsedTime = Properties.Settings.Default.ElapsedTime;
-            double target = Properties.Settings.Default.TargetHours * 3600000.0;
-            ProgressBarCurrentValue = (ElapsedTime / target) * 100;
-            DisplayedPercentage = ((ProgressBarCurrentValue >= 100) ? 100 : ProgressBarCurrentValue).ToString("F4") + "%";
+            if (Properties.Settings.Default.HasLoadPath)
+            {
+                if (File.Exists(Properties.Settings.Default.LastLoadPath))
+                {
+                    CurrentProject = SaveSystem.Load(Properties.Settings.Default.LastLoadPath);
+                }
+                else
+                {
+                    MessageBox.Show("Previously save .MPF file could not be found please load it again!");
+                }
+            }
+            UpdateView();
+            OnPropertyChanged("TargetHours");
 
-            m_intervalTimer.Interval = 16; // 60 FPS roughly
+            m_intervalTimer.Interval = 1;
             m_intervalTimer.AutoReset = true;
             m_intervalTimer.Elapsed += Tick;
 
@@ -161,5 +215,13 @@ namespace Mastery.ViewModels
             GC.KeepAlive(m_backupTimer);
             GC.KeepAlive(m_dtStopwatch);
         }
-    }
+
+        private void UpdateView()
+        {
+            double target = CurrentProject.TargetHours * 3600000.0;
+            ProgressBarCurrentValue = (CurrentProject.ElapsedTime / target) * 100;
+            DisplayedPercentage = ((ProgressBarCurrentValue >= 100) ? 100 : ProgressBarCurrentValue).ToString("F4") + "%";
+        }
+    } 
+        #endregion
 }

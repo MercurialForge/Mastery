@@ -2,11 +2,11 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Mastery.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="TargetHours" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">5000</Value>
+    <Setting Name="LastLoadPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="ElapsedTime" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
+    <Setting Name="HasLoadPath" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

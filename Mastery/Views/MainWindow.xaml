@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="clr-namespace:Mastery.Utilities"
         xmlns:p="clr-namespace:Mastery.Properties"
-        Title="Mastery" Height="105" Width="525" ResizeMode="NoResize" MaxHeight="105" MinWidth="350" MaxWidth="1500" Closed="Window_Closed" WindowStyle="None" MinHeight="105">
+        Title="Mastery" Height="130" Width="525" ResizeMode="NoResize" MaxHeight="130" MinWidth="350" MaxWidth="1500" Closed="Window_Closed" WindowStyle="None" MinHeight="130">
     <Window.Resources>
-        <c:HoursToMilliseconds x:Key="HoursToMilliseconds"/>
+        <c:ValueToString x:Key="ValueToString"/>
     </Window.Resources>
     <Grid Background="LightGray">
         <DockPanel VerticalAlignment="Top" Height="20">
@@ -22,9 +22,9 @@
                         <MenuItem Header="E_xit" Command="{Binding Shutdown}"/>
                     </MenuItem>
                     <MenuItem Header="_Project">
-                        <MenuItem Header="_New"/>
-                        <MenuItem Header="_Load"/>
-                        <MenuItem Header="_Save"/>
+                        <MenuItem Header="_New" Command="{Binding NewProject}"/>
+                        <MenuItem Header="_Load" Command="{Binding Load}"/>
+                        <MenuItem Header="_Save" Command="{Binding Save}"/>
                         <MenuItem Header="_Details"/>
                         <Separator/>
                         <MenuItem Header="_Close"/>
@@ -39,21 +39,31 @@
         </DockPanel>
         <Grid Margin="0,20,0,0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="35"/>
+                <RowDefinition Height="30"/>
+                <RowDefinition Height="25"/>
                 <RowDefinition Height="35"/>
             </Grid.RowDefinitions>
-            <Grid Margin="0,0,10,0">
+            <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="50"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="330"/>
+                    <ColumnDefinition Width="72"/>
+                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="72"/>
                 </Grid.ColumnDefinitions>
-                <Grid VerticalAlignment="Bottom">
-                    <ProgressBar Grid.Column="0" Value="{Binding ProgressBarCurrentValue}" Height="25" Margin="10,0" SmallChange="0.01" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Row="0" Text="{Binding DisplayedPercentage}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Grid>
-                <TextBox Grid.Column="1" Text="{Binding Source= {x:Static p:Settings.Default},Path=TargetHours,Mode=TwoWay}" VerticalAlignment="Bottom" Height="25" MaxLines="1" MaxLength="5" AcceptsReturn="True" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
+                <Label Content="{Binding TaskTitle}" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center" Height="26" Margin="0,5" Padding="5,0" VerticalContentAlignment="Center" FontWeight="Bold" FontStyle="Italic" FontSize="14"/>
+                <Label Content="{Binding CurrentHour}" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Height="26" Margin="0,5" FontWeight="Bold" FontSize="20" Padding="5,0"/>
+                <Label Content="of" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" Height="26" Margin="0,5" FontWeight="Bold" FontSize="20" Padding="5,0"/>
+                <Label Content="{Binding TargetHours}" Grid.Column="4" HorizontalAlignment="Left" VerticalAlignment="Center" Height="26" Margin="0,5" FontWeight="Bold" FontSize="20" Padding="5,0"/>
+
             </Grid>
             <Grid Grid.Row="1">
+                <Grid VerticalAlignment="Bottom">
+                    <ProgressBar Value="{Binding ProgressBarCurrentValue}" Height="25" Margin="10,0" SmallChange="0.01" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding DisplayedPercentage}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+            </Grid>
+            <Grid Grid.Row="2">
                 <Button Grid.Column="0" Command="{Binding ProcessButton}" Content="{Binding ButtonText}" Width="100" Height="25" VerticalAlignment="Bottom"/>
             </Grid>
         </Grid>
