@@ -14,8 +14,6 @@ namespace Mastery.Views
     public partial class NewProject : Window
     {
         MainWindowViewModel mainVM;
-        private string m_taskText;
-        private string m_hoursValue;
 
         public NewProject(MainWindowViewModel mainWindow)
         {

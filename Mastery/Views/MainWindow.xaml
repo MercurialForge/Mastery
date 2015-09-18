@@ -22,10 +22,11 @@
                         <MenuItem Header="_New" Command="{Binding NewProject}"/>
                         <MenuItem Header="_Open" Command="{Binding Load}"/>
                         <MenuItem Header="_Save" Command="{Binding Save}"/>
-                        <MenuItem Header="_Details"/>
+                        <MenuItem Header="_Save As" Command="{Binding SaveAs}"/>
+                        <MenuItem Header="_Details" Command="{Binding Details}"/> 
                     </MenuItem>
                     <MenuItem Header="_Help">
-                        <MenuItem Header="_About"/>
+                        <MenuItem Header="_About" Command="{Binding About}"/>
                     </MenuItem>
                 </Menu>
                 <Rectangle Grid.Column="1" HorizontalAlignment="Stretch"  VerticalAlignment="Top" Height="20" MouseDown="MainMenu_MouseDown" Panel.ZIndex="1" Fill="White" />

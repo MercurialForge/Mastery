@@ -1,0 +1,27 @@
+﻿<Window x:Class="Mastery.Views.DetailsPanel"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mastery Details Viewer" Height="243" Width="502" WindowStyle="ToolWindow" ResizeMode="NoResize">
+    <Grid Background="LightGray">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="55"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="40"/>
+        </Grid.RowDefinitions>
+
+        <Label x:Name="ChallengeText" Grid.Row="1" Content="Your ???? hour mastery of Drawing" VerticalAlignment="Center" FontWeight="Bold" HorizontalContentAlignment="Center" Padding="5,0" FontSize="14"/>
+        <Label x:Name="Started" Grid.Row="2" Content="Officially started on 9/9/9999 9:99:99 PM" VerticalAlignment="Center" HorizontalContentAlignment="Center" Padding="5,0"/>
+        <Label x:Name="Hours" Grid.Row="3" Content="??" VerticalAlignment="Bottom" Padding="5,0" FontWeight="Bold" FontSize="36" VerticalContentAlignment="Bottom" HorizontalContentAlignment="Center"/>
+        <Label x:Name="Statement" Grid.Row="4" Content="Hours Spent Drawing" HorizontalContentAlignment="Center" FontWeight="Bold" Padding="5,0" VerticalContentAlignment="Center"/>
+        <Grid Grid.Row="5" VerticalAlignment="Bottom">
+            <Grid>
+                <ProgressBar x:Name="ProgressBar" Height="25" Margin="10,0" SmallChange="0.01" VerticalAlignment="Center"/>
+                <TextBlock x:Name="ProgressPercentage" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+        </Grid>
+
+    </Grid>
+</Window>
