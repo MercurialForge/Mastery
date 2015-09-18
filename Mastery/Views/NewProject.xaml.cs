@@ -45,6 +45,7 @@ namespace Mastery.Views
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
+            if (TaskText.Text == "" || HoursValue.Text == "") { return; }
             ProjectModel project = new ProjectModel();
             project.Task = TaskText.Text;
             project.TargetHours = int.Parse(HoursValue.Text);

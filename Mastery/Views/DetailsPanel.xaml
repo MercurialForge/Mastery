@@ -12,7 +12,7 @@
             <RowDefinition Height="40"/>
         </Grid.RowDefinitions>
 
-        <Label x:Name="ChallengeText" Grid.Row="1" Content="Your ???? hour mastery of Drawing" VerticalAlignment="Center" FontWeight="Bold" HorizontalContentAlignment="Center" Padding="5,0" FontSize="14"/>
+        <Label x:Name="ChallengeText" Grid.Row="1" Content="My ???? hour mastery of Drawing" VerticalAlignment="Center" FontWeight="Bold" HorizontalContentAlignment="Center" Padding="5,0" FontSize="14"/>
         <Label x:Name="Started" Grid.Row="2" Content="Officially started on 9/9/9999 9:99:99 PM" VerticalAlignment="Center" HorizontalContentAlignment="Center" Padding="5,0"/>
         <Label x:Name="Hours" Grid.Row="3" Content="??" VerticalAlignment="Bottom" Padding="5,0" FontWeight="Bold" FontSize="36" VerticalContentAlignment="Bottom" HorizontalContentAlignment="Center"/>
         <Label x:Name="Statement" Grid.Row="4" Content="Hours Spent Drawing" HorizontalContentAlignment="Center" FontWeight="Bold" Padding="5,0" VerticalContentAlignment="Center"/>

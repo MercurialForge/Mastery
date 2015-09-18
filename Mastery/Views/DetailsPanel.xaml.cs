@@ -24,7 +24,7 @@ namespace Mastery.Views
         public DetailsPanel(ProjectModel project)
         {
             InitializeComponent();
-            ChallengeText.Content = "Your " + project.TargetHours.ToString("G") + " hour mastery of " + project.Task;
+            ChallengeText.Content = "My " + project.TargetHours.ToString("G") + " hour mastery of " + project.Task;
             Started.Content = "Officially started on " + project.StartDate;
             Hours.Content = project.CurrentHour.ToString();
             Statement.Content = "Hours Spent " + project.Task;
