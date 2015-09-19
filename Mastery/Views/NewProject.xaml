@@ -23,7 +23,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Label Grid.Column="0" Content="Task:" Margin="10,0,0,0"/>
-            <TextBox x:Name="TaskText" Grid.Column="1" Margin="10, 0" MaxLines="1" MaxLength="30"/>
+            <TextBox Grid.Column="1" Text="{Binding TaskText, UpdateSourceTrigger=PropertyChanged}" Margin="10, 0" MaxLines="1" MaxLength="30"/>
         </Grid>
 
         <Grid Grid.Row="4">
@@ -32,7 +32,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Label Grid.Column="0" Content="Hours:" Margin="10,0,0,0"/>
-            <TextBox x:Name="HoursValue" Grid.Column="1" Margin="10, 0" MaxLines="1" MaxLength="5" PreviewTextInput="PreviewHoursInput" HorizontalContentAlignment="Center"/>
+            <TextBox Grid.Column="1" Text="{Binding HoursValue, UpdateSourceTrigger=PropertyChanged}" Margin="10, 0" MaxLines="1" MaxLength="5" PreviewTextInput="PreviewHoursInput" HorizontalContentAlignment="Center"/>
         </Grid>
 
         <Grid Grid.Row="6">
@@ -42,7 +42,7 @@
             </Grid.ColumnDefinitions>
 
             <Button Grid.Column="0" Click="Close" Content="Cancel" Margin="10,0"/>
-            <Button Grid.Column="1" Content="Create" Margin="10,0" Click="Button_Click"/>
+            <Button Grid.Column="1" Content="Create" IsEnabled="{Binding CanCreate}" Margin="10,0" Click="Button_Click"/>
 
         </Grid>
     </Grid>
