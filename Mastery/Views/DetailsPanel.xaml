@@ -1,7 +1,7 @@
 ﻿<Window x:Class="Mastery.Views.DetailsPanel"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Mastery Details Viewer" Height="243" Width="502" WindowStyle="ToolWindow" ResizeMode="NoResize">
+        Title="Mastery Details Viewer" Height="243" Width="502" WindowStyle="ToolWindow" ResizeMode="NoResize" Icon="/Mastery;component/Resources/favicon.ico" >
     <Grid Background="LightGray">
         <Grid.RowDefinitions>
             <RowDefinition Height="10"/>

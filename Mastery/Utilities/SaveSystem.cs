@@ -53,11 +53,12 @@ namespace Mastery.Utilities
             if (OpenFile(out fileName))
             {
                 project = LoadProjectModel(fileName);
+                Properties.Settings.Default.HasLoadPath = true;
+                Properties.Settings.Default.LastLoadPath = fileName;
+                return project;
             }
+            return null;
 
-            Properties.Settings.Default.HasLoadPath = true;
-            Properties.Settings.Default.LastLoadPath = fileName;
-            return project;
         }
 
         public static ProjectModel Load(string loadPath)

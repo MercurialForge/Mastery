@@ -86,11 +86,13 @@ namespace Mastery.ViewModels
         private Timer m_intervalTimer = new Timer();
         private Timer m_backupTimer = new Timer();
         private DateTime m_beginning;
+        private Window m_mainWindow;
         #endregion
 
-        public MainWindowViewModel()
+        public MainWindowViewModel(Window mainWindow)
         {
             Initialize();
+            m_mainWindow = mainWindow;
         }
 
         #region Commands
@@ -129,8 +131,25 @@ namespace Mastery.ViewModels
         }
         private void DoLoad()
         {
-            CurrentProject = SaveSystem.Load();
-            UpdateView();
+            ProjectModel project = SaveSystem.Load();
+            if (project != null)
+            {
+                CurrentProject = project;
+                UpdateView();
+                if (m_isTimerRunning)
+                {
+                    ToggleButton();
+                }
+            }
+        }
+
+        public ICommand Minimize
+        {
+            get { return new RelayCommand(x => DoMinimize()); }
+        }
+        private void DoMinimize()
+        {
+            m_mainWindow.WindowState = WindowState.Minimized;
         }
 
         public ICommand Details

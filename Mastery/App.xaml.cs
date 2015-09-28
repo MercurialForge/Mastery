@@ -18,7 +18,7 @@ namespace Mastery
         {
             base.OnStartup(e);
             MainWindow window = new MainWindow();
-            MainWindowViewModel viewModel = new MainWindowViewModel();
+            MainWindowViewModel viewModel = new MainWindowViewModel(window);
             window.DataContext = viewModel;
             window.Show();
         }
