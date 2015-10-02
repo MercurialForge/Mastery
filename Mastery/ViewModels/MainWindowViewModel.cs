@@ -221,28 +221,28 @@ namespace Mastery.ViewModels
             newProjectWindow.Show();
         }
 
-        // Reset everything
-        public ICommand Clear
-        {
-            get { return new RelayCommand(x => DoClear()); }
-        }
-        private void DoClear()
-        {
-            // Stop timer
-            if (m_isTimerRunning) { ToggleButton(); }
+        //// Reset everything
+        //public ICommand Clear
+        //{
+        //    get { return new RelayCommand(x => DoClear()); }
+        //}
+        //private void DoClear()
+        //{
+        //    // Stop timer
+        //    if (m_isTimerRunning) { ToggleButton(); }
 
-            // Reset visuals to default
-            ButtonText = "Start";
-            DisplayedPercentage = "0.0000%";
-            ProgressBarCurrentValue = 0;
+        //    // Reset visuals to default
+        //    ButtonText = "Start";
+        //    DisplayedPercentage = "0.0000%";
+        //    ProgressBarCurrentValue = 0;
 
-            // Load default project
-            CurrentProject = new ProjectModel();
-            Properties.Settings.Default.Reset();
+        //    // Load default project
+        //    CurrentProject = new ProjectModel();
+        //    Properties.Settings.Default.Reset();
 
-            // Clear dirty values
-            UpdateView();
-        }
+        //    // Clear dirty values
+        //    UpdateView();
+        //}
 
         // Process the button input
         public ICommand ProcessButton

@@ -15,15 +15,15 @@
                 </Grid.ColumnDefinitions>
                 <Menu Grid.Column="0" DockPanel.Dock="Top" Background="white">
                     <MenuItem Header="_File">
-                        <MenuItem Header="Clear" Command="{Binding Clear}" ToolTip="Reset to defaults"/>
+                        <!--<MenuItem Header="Clear" Command="{Binding Clear}" ToolTip="Reset to defaults"/>-->
+                        <MenuItem Header="_New" Command="{Binding NewProject}"/>
+                        <MenuItem Header="_Open" Command="{Binding Load}"/>
+                        <MenuItem Header="_Save" Command="{Binding Save}"/>
+                        <MenuItem Header="Save _As" Command="{Binding SaveAs}"/>
                         <Separator/>
                         <MenuItem Header="E_xit" Command="{Binding Shutdown}" ToolTip="Exit the application"/>
                     </MenuItem>
                     <MenuItem Header="_Project">
-                        <MenuItem Header="_New" Command="{Binding NewProject}"/>
-                        <MenuItem Header="_Open" Command="{Binding Load}"/>
-                        <MenuItem Header="_Save" Command="{Binding Save}"/>
-                        <MenuItem Header="_Save As" Command="{Binding SaveAs}"/>
                         <MenuItem Header="_Details" Command="{Binding Details}"/> 
                     </MenuItem>
                     <MenuItem Header="_Help">
