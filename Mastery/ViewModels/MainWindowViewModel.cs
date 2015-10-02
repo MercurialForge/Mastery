@@ -186,6 +186,17 @@ namespace Mastery.ViewModels
                 {
                     SaveSystem.SaveNoPrompt(CurrentProject);
                 }
+                else
+                {
+                    MessageBoxResult result = MessageBox.Show(
+                        "The file Mastery was writing to has been Moved or Deleted. Please Save!"
+                        + Environment.NewLine
+                        + Environment.NewLine 
+                        + "OK : to Save" + Environment.NewLine 
+                        + "Cancel : to Ignore", "FILE NOT FOUND", MessageBoxButton.OKCancel);
+                    if (result == MessageBoxResult.OK) { SaveSystem.Save(CurrentProject); }
+                    else { Properties.Settings.Default.HasLoadPath = false; }
+                }
             }
             // Request to save unsaved default if time has elapsed on it.
             else
@@ -296,7 +307,8 @@ namespace Mastery.ViewModels
                 }
                 else
                 {
-                    MessageBoxResult result = MessageBox.Show("The previously loaded .MPF (project file) could not be found. If you moved it please click \"OK\" to relocate it. \"Cancel\" to ignore.", "FILE NOT FOUND", MessageBoxButton.OKCancel);
+                    MessageBoxResult result = MessageBox.Show(
+                        "The previously loaded .MPF (project file) could not be found. If you moved it please click \"OK\" to relocate it. \"Cancel\" to ignore.", "FILE NOT FOUND", MessageBoxButton.OKCancel);
                     if (result == MessageBoxResult.OK) { SaveSystem.Load(); }
                     else { Properties.Settings.Default.HasLoadPath = false; }
                 }

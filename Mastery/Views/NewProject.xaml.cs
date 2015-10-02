@@ -101,6 +101,7 @@ namespace Mastery.Views
         {
             ProjectModel project = new ProjectModel();
             project.Task = TaskText;
+            HoursValue = Regex.Replace(HoursValue, @"\s+", "");
             project.TargetHours = int.Parse(HoursValue);
             if (SaveSystem.Save(project))
             {
