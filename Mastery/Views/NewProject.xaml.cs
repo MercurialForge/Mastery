@@ -103,7 +103,7 @@ namespace Mastery.Views
             project.Task = TaskText;
             HoursValue = Regex.Replace(HoursValue, @"\s+", "");
             project.TargetHours = int.Parse(HoursValue);
-            if (SaveSystem.Save(project))
+            if (SaveSystem.Save(project, true))
             {
                 mainVM.CurrentProject = project;
             }

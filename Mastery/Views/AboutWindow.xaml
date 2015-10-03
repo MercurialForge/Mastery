@@ -19,7 +19,7 @@
                 Mastery is a minimalist time tracking application for beginners and experts looking to better their craft.
             </TextBlock>
             <TextBlock Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,5,0,0" TextWrapping="Wrap" Width="425">
-                I write applications like this for fun, to help others, and for free. <LineBreak/>
+                I write applications like this for fun, and to help others. <LineBreak/>
                 It takes a considerable amount of time to write and polish something like this.<LineBreak/> 
                 Please consider clicking above and suppoting me and my work on Parteon.
             </TextBlock>

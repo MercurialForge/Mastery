@@ -10,12 +10,12 @@ namespace Mastery.Utilities
 {
     public class SaveSystem
     {
-        public static bool Save(ProjectModel project)
+        public static bool Save(ProjectModel project, bool isNewCreation = false)
         {
             string fileName = "";
             if (SaveFile(out fileName))
             {
-                SaveProjectModel(project, fileName);
+                SaveProjectModel(project, fileName, isNewCreation);
                 Properties.Settings.Default.HasLoadPath = true;
                 Properties.Settings.Default.LastLoadPath = fileName;
                 return true;
@@ -23,18 +23,29 @@ namespace Mastery.Utilities
             return false;
         }
 
-        private static void SaveProjectModel(ProjectModel project, string fileName)
+        private static void SaveProjectModel(ProjectModel project, string fileName, bool isNewCreation = false)
         {
             using (BinaryWriter writer = new BinaryWriter(File.Open(fileName, FileMode.Create)))
             {
                 writer.Write(Encoding.UTF8.GetBytes("MPF0")); // magic
                 writer.Write(project.Task.Count());
                 writer.Write(Encoding.UTF8.GetBytes(project.Task));
-                writer.Write(DateTime.Now.Month);
-                writer.Write(DateTime.Now.Day);
-                writer.Write(DateTime.Now.Year);
-                writer.Write(DateTime.Now.Hour);
-                writer.Write(DateTime.Now.Minute);
+                if (isNewCreation)
+                {
+                    writer.Write(DateTime.Now.Month);
+                    writer.Write(DateTime.Now.Day);
+                    writer.Write(DateTime.Now.Year);
+                    writer.Write(DateTime.Now.Hour);
+                    writer.Write(DateTime.Now.Minute);
+                }
+                else
+                {
+                    writer.Write(project.StartDate.Month);
+                    writer.Write(project.StartDate.Day);
+                    writer.Write(project.StartDate.Year);
+                    writer.Write(project.StartDate.Hour);
+                    writer.Write(project.StartDate.Minute);
+                }
                 writer.Write(project.TargetHours);
                 writer.Write(project.ElapsedTime);
             }

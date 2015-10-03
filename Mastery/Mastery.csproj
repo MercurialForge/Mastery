@@ -26,7 +26,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ProductName>Mastery</ProductName>
     <PublisherName>Mercurial Forge</PublisherName>
-    <ApplicationRevision>6</ApplicationRevision>
+    <ApplicationRevision>7</ApplicationRevision>
     <ApplicationVersion>0.7.2.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
