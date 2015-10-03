@@ -309,7 +309,7 @@ namespace Mastery.ViewModels
                 {
                     MessageBoxResult result = MessageBox.Show(
                         "The previously loaded .MPF (project file) could not be found. If you moved it please click \"OK\" to relocate it. \"Cancel\" to ignore.", "FILE NOT FOUND", MessageBoxButton.OKCancel);
-                    if (result == MessageBoxResult.OK) { SaveSystem.Load(); }
+                    if (result == MessageBoxResult.OK) { DoLoad(); }
                     else { Properties.Settings.Default.HasLoadPath = false; }
                 }
             }
