@@ -1,4 +1,5 @@
 ﻿using Mastery.Utilities;
+using Mastery;
 using System;
 using System.Diagnostics;
 using System.Timers;
@@ -6,6 +7,9 @@ using System.Windows;
 using System.Windows.Input;
 using Mastery.Views;
 using System.IO;
+using System.Runtime.InteropServices;
+using Hardcodet.Wpf.TaskbarNotification;
+using System.Windows.Controls.Primitives;
 
 namespace Mastery.ViewModels
 {
@@ -75,24 +79,34 @@ namespace Mastery.ViewModels
         {
             get { return "Task: " + CurrentProject.Task; }
         }
+        public bool IsMonitoringActive
+        {
+            get { return m_isMonitoringActive; }
+            set { m_isMonitoringActive = value; }
+        }
 
         private ProjectModel _projectModel = new ProjectModel();
         private string m_buttonText = "Start";
         private string m_displayedPercentage = "0.000%";
         private double m_progressBarCurrentValue = 0;
 
-        private bool m_isTimerRunning = false;
+        private bool m_isMasteryActive = false;
         private Stopwatch m_dtStopwatch = new Stopwatch();
         private Timer m_intervalTimer = new Timer();
         private Timer m_backupTimer = new Timer();
+        private Timer m_mouseQueryTimer = new Timer();
         private DateTime m_beginning;
-        private Window m_mainWindow;
+        private MainWindow m_mainWindow;
+        private Point previousPoint;
+        private WeightedBool m_isUserInactive = new WeightedBool();
+        private bool m_isMonitoringActive;
+        private int m_previousHour;
         #endregion
 
         public MainWindowViewModel(Window mainWindow)
         {
             Initialize();
-            m_mainWindow = mainWindow;
+            m_mainWindow = (MainWindow)mainWindow;
         }
 
         #region Commands
@@ -135,8 +149,9 @@ namespace Mastery.ViewModels
             if (project != null)
             {
                 CurrentProject = project;
+                m_previousHour = CurrentProject.CurrentHour;
                 UpdateView();
-                if (m_isTimerRunning)
+                if (m_isMasteryActive)
                 {
                     ToggleButton();
                 }
@@ -166,7 +181,7 @@ namespace Mastery.ViewModels
         {
             get { return new RelayCommand(x => ShowAbout()); }
         }
-        public void ShowAbout ()
+        public void ShowAbout()
         {
             AboutWindow about = new AboutWindow();
             about.Show();
@@ -191,8 +206,8 @@ namespace Mastery.ViewModels
                     MessageBoxResult result = MessageBox.Show(
                         "The file Mastery was writing to has been Moved or Deleted. Please Save!"
                         + Environment.NewLine
-                        + Environment.NewLine 
-                        + "OK : to Save" + Environment.NewLine 
+                        + Environment.NewLine
+                        + "OK : to Save" + Environment.NewLine
                         + "Cancel : to Ignore", "FILE NOT FOUND", MessageBoxButton.OKCancel);
                     if (result == MessageBoxResult.OK) { SaveSystem.Save(CurrentProject); }
                     else { Properties.Settings.Default.HasLoadPath = false; }
@@ -251,25 +266,153 @@ namespace Mastery.ViewModels
         }
         private void ToggleButton()
         {
-            if (m_isTimerRunning)
+            if (m_isMasteryActive)
             {
-                ButtonText = "Continue";
-                m_dtStopwatch.Stop();
-                m_intervalTimer.Enabled = false;
-                m_isTimerRunning = false;
+                ButtonText = "Resume";
+                m_isMasteryActive = false;
             }
             else
             {
                 ButtonText = "Pause";
-                m_dtStopwatch.Start();
-                m_intervalTimer.Enabled = true;
-                m_isTimerRunning = true;
-                m_beginning = DateTime.Now;
+                m_isMasteryActive = true;
+            }
+        }
+
+        public ICommand ToggleMonitoring
+        {
+            get { return new RelayCommand(c => DoToggleMonitoring()); }
+        }
+        private void DoToggleMonitoring()
+        {
+            if(IsMonitoringActive)
+            {
+                if(m_isMasteryActive)
+                {
+                    return;
+                }
+                else
+                {
+                    ToggleButton();
+                    return;
+                }
+            }
+            else
+            {
+                if (m_isMasteryActive)
+                {
+                    ToggleButton();
+                    return;
+                }
+                else
+                {
+                    return;
+                }
             }
         }
         #endregion
 
+        #region P/Invoke
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetCursorPos(ref Win32Point pt);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Win32Point
+        {
+            public Int32 X;
+            public Int32 Y;
+        };
+
+        public static Point GetMousePosition()
+        {
+            Win32Point w32Mouse = new Win32Point();
+            GetCursorPos(ref w32Mouse);
+            return new Point(w32Mouse.X, w32Mouse.Y);
+        }
+
+        // The GetForegroundWindow function returns a handle to the foreground window
+        // (the window  with which the user is currently working).
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        // The GetWindowThreadProcessId function retrieves the identifier of the thread
+        // that created the specified window and, optionally, the identifier of the
+        // process that created the window.
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern Int32 GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        // Returns the name of the process owning the foreground window.
+        private string GetForegroundProcessName()
+        {
+            IntPtr hwnd = GetForegroundWindow();
+
+            // The foreground window can be NULL in certain circumstances, 
+            // such as when a window is losing activation.
+            if (hwnd == null)
+                return "Unknown";
+
+            uint pid;
+            GetWindowThreadProcessId(hwnd, out pid);
+
+            foreach (System.Diagnostics.Process p in System.Diagnostics.Process.GetProcesses())
+            {
+                if (p.Id == pid)
+                    return p.ProcessName;
+            }
+
+            return "Unknown";
+        }
+        #endregion
+
+        private void TickMouseQuery(Object source, System.Timers.ElapsedEventArgs e)
+        {
+            string activeProcess = GetForegroundProcessName();
+            Console.WriteLine(activeProcess);
+
+            if (activeProcess == "Photoshop" || activeProcess == "CLIPStudioPaint")
+            {
+                Point p = GetMousePosition();
+                if (p == previousPoint)
+                {
+                    m_isUserInactive.AddWeight(true);
+                    return;
+                }
+                m_isUserInactive.SetFalse();
+                previousPoint = p;
+                return;
+            }
+            else
+            {
+                m_isUserInactive.SetTrue();
+                return;
+            }
+        }
+
         private void Tick(Object source, System.Timers.ElapsedEventArgs e)
+        {
+            if(!IsMonitoringActive)
+            {
+                if (m_isMasteryActive)
+                {
+                    ProcessTick();
+                }
+                m_beginning = DateTime.Now;
+                return;
+            }
+
+            if (m_isMasteryActive)
+            {
+                if (!m_isUserInactive.State)
+                {
+                    ProcessTick();
+                    return;
+                }
+                m_beginning = DateTime.Now;
+            }
+            m_beginning = DateTime.Now;
+        }
+
+        private void ProcessTick()
         {
             // Delta Time
             CurrentProject.ElapsedTime += (DateTime.Now - m_beginning).TotalMilliseconds;
@@ -286,6 +429,16 @@ namespace Mastery.ViewModels
         private void TickBackUp(Object source, System.Timers.ElapsedEventArgs e)
         {
             Properties.Settings.Default.Save();
+            if (m_previousHour != CurrentProject.CurrentHour)
+            {
+                m_previousHour = CurrentProject.CurrentHour;
+                Application.Current.Dispatcher.Invoke((Action)delegate
+                {
+
+                    ShowHourPlusPopUp();
+
+                });
+            }
         }
 
         private void UpdateView()
@@ -297,6 +450,13 @@ namespace Mastery.ViewModels
             OnPropertyChanged("TargetHours");
         }
 
+        private void ShowHourPlusPopUp()
+        {
+            SystemTrayPopup balloon = new SystemTrayPopup();
+            balloon.PopupText = "+1 Hour! " + "You can do one more, right?";
+            m_mainWindow.ShowTaskbarPopup(balloon);
+        }
+
         private void Initialize()
         {
             if (Properties.Settings.Default.HasLoadPath)
@@ -304,6 +464,7 @@ namespace Mastery.ViewModels
                 if (File.Exists(Properties.Settings.Default.LastLoadPath))
                 {
                     CurrentProject = SaveSystem.Load(Properties.Settings.Default.LastLoadPath);
+                    m_previousHour = CurrentProject.CurrentHour;
                 }
                 else
                 {
@@ -318,15 +479,18 @@ namespace Mastery.ViewModels
             m_intervalTimer.Interval = 1;
             m_intervalTimer.AutoReset = true;
             m_intervalTimer.Elapsed += Tick;
+            m_beginning = DateTime.Now;
+            m_intervalTimer.Start();
 
             m_backupTimer.Interval = 5000; // 5 seconds
             m_backupTimer.AutoReset = true;
             m_backupTimer.Elapsed += TickBackUp;
             m_backupTimer.Start();
 
-            GC.KeepAlive(m_intervalTimer);
-            GC.KeepAlive(m_backupTimer);
-            GC.KeepAlive(m_dtStopwatch);
+            m_mouseQueryTimer.Interval = 1000; // 1 second
+            m_mouseQueryTimer.AutoReset = true;
+            m_mouseQueryTimer.Elapsed += TickMouseQuery;
+            m_mouseQueryTimer.Start();
         }
     }
 }
