@@ -9,18 +9,15 @@ namespace Mastery.Utilities
 {
     public class ProjectModel
     {
+        // Saved and Loaded Properties
         public string Task { get; set; }
         public DateTime StartDate {get; set;}
         public double TargetHours { get; set; }
         public double ElapsedTime { get; set; }
-        public TimeSpan RunTime
-        {
-            get
-            {
-                TimeSpan timespan = TimeSpan.FromMilliseconds(ElapsedTime);
-                return timespan;
-            }
-        }
+        public bool IsMonitoring { get; set; }
+        public List<string> Applications = new List<string>();
+
+        // Query Properties
         public int CurrentHour 
         { 
             get 
@@ -30,12 +27,15 @@ namespace Mastery.Utilities
             } 
         }
 
+        // Constructor
         public ProjectModel ()
         {
             Task = "Drawing";
             StartDate = DateTime.Now;
             TargetHours = 5000;
             ElapsedTime = 0.0;
+            Applications.Add("CLIPStudioPaint");
+            Applications.Add("Photoshop");
         }
     }
 }

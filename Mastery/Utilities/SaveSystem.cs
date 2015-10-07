@@ -10,12 +10,13 @@ namespace Mastery.Utilities
 {
     public class SaveSystem
     {
-        public static bool Save(ProjectModel project, bool isNewCreation = false)
+        #region Saving
+        public static bool Save(ProjectModel project, bool SetStartDate = false)
         {
             string fileName = "";
             if (SaveFile(out fileName))
             {
-                SaveProjectModel(project, fileName, isNewCreation);
+                SaveProjectModel(project, fileName, SetStartDate);
                 Properties.Settings.Default.HasLoadPath = true;
                 Properties.Settings.Default.LastLoadPath = fileName;
                 return true;
@@ -23,14 +24,19 @@ namespace Mastery.Utilities
             return false;
         }
 
-        private static void SaveProjectModel(ProjectModel project, string fileName, bool isNewCreation = false)
+        public static void SaveNoPrompt(ProjectModel project)
+        {
+            SaveProjectModel(project, Properties.Settings.Default.LastLoadPath);
+        }
+
+        private static void SaveProjectModel(ProjectModel project, string fileName, bool SetStartDate = false)
         {
             using (BinaryWriter writer = new BinaryWriter(File.Open(fileName, FileMode.Create)))
             {
                 writer.Write(Encoding.UTF8.GetBytes("MPF0")); // magic
                 writer.Write(project.Task.Count());
                 writer.Write(Encoding.UTF8.GetBytes(project.Task));
-                if (isNewCreation)
+                if (SetStartDate)
                 {
                     writer.Write(DateTime.Now.Month);
                     writer.Write(DateTime.Now.Day);
@@ -48,14 +54,20 @@ namespace Mastery.Utilities
                 }
                 writer.Write(project.TargetHours);
                 writer.Write(project.ElapsedTime);
+
+                // added in V1.1 should automaticlly be added by the default project and updated next save. Typically 5 seconds after load.
+                writer.Write(project.IsMonitoring);
+                writer.Write(project.Applications.Count);
+                for(int i = 0; i < project.Applications.Count; i++)
+                {
+                    writer.Write(project.Applications[i].Count());
+                    writer.Write(Encoding.UTF8.GetBytes(project.Applications[i]));
+                }
             }
         }
+        #endregion
 
-        public static void SaveNoPrompt(ProjectModel project)
-        {
-            SaveProjectModel(project, Properties.Settings.Default.LastLoadPath);
-        }
-
+        #region Loading
         public static ProjectModel Load()
         {
             ProjectModel project = new ProjectModel();
@@ -107,10 +119,31 @@ namespace Mastery.Utilities
 
                 // Get Total Elapsed Time
                 project.ElapsedTime = reader.ReadDouble();
+
+                bool isEndOfStream = reader.BaseStream.Position == reader.BaseStream.Length;
+
+                if (!isEndOfStream)
+                {
+                    // added in V1.1 should automaticlly be added by the default project and updated next save. Typically 5 seconds after load.
+                    project.IsMonitoring = reader.ReadBoolean();
+
+                    int applicationCount = reader.ReadInt32();
+                    for (int i = 0; i < applicationCount; i++)
+                    {
+                        int charLength = reader.ReadInt32();
+                        string application = new string(reader.ReadChars(charLength));
+                        if(!project.Applications.Contains(application))
+                        {
+                            project.Applications.Add(application);
+                        }
+                    }
+                }
             }
             return project;
         }
+        #endregion
 
+        #region Utilities
         private static bool OpenFile(out string outPath)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -140,5 +173,6 @@ namespace Mastery.Utilities
             outPath = "";
             return false;
         }
+        #endregion
     }
 }

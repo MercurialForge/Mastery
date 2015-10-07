@@ -1,15 +1,11 @@
 ﻿using Mastery.Utilities;
-using Mastery;
+using Mastery.Views;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Timers;
 using System.Windows;
 using System.Windows.Input;
-using Mastery.Views;
-using System.IO;
-using System.Runtime.InteropServices;
-using Hardcodet.Wpf.TaskbarNotification;
-using System.Windows.Controls.Primitives;
 
 namespace Mastery.ViewModels
 {
@@ -18,10 +14,13 @@ namespace Mastery.ViewModels
         #region Fields & Properties
         public ProjectModel CurrentProject
         {
-            get { return _projectModel; }
+            get { return m_projectModel; }
             set
             {
-                _projectModel = value;
+                m_projectModel = value;
+                m_previousHour = m_projectModel.CurrentHour;
+                IsMonitoringActive = m_projectModel.IsMonitoring;
+                if (IsMonitoringActive) { ToggleButton(); }
                 OnPropertyChanged("TargetHours");
                 OnPropertyChanged("TaskTitle");
                 OnPropertyChanged("CurrentHour");
@@ -33,26 +32,19 @@ namespace Mastery.ViewModels
         {
             get { return CurrentProject.CurrentHour; }
         }
-        public double TargetHours
+        public bool IsMonitoringActive
         {
-            get { return CurrentProject.TargetHours; }
-        }
-        private double ElapsedTime
-        {
-            get { return CurrentProject.ElapsedTime; }
-            set
-            {
-                CurrentProject.ElapsedTime = value;
+            get { return m_isMonitoringActive; }
+            set 
+            { 
+                m_isMonitoringActive = value;
+                CurrentProject.IsMonitoring = m_isMonitoringActive;
+                OnPropertyChanged("IsMonitoringActive");
             }
         }
-        public double ProgressBarCurrentValue
+        public string TaskTitle
         {
-            get { return m_progressBarCurrentValue; }
-            set
-            {
-                m_progressBarCurrentValue = value;
-                OnPropertyChanged("ProgressBarCurrentValue");
-            }
+            get { return "Task: " + CurrentProject.Task; }
         }
         public string ButtonText
         {
@@ -75,31 +67,42 @@ namespace Mastery.ViewModels
                 OnPropertyChanged("DisplayedPercentage");
             }
         }
-        public string TaskTitle
+        public double TargetHours
         {
-            get { return "Task: " + CurrentProject.Task; }
+            get { return CurrentProject.TargetHours; }
         }
-        public bool IsMonitoringActive
+        public double ProgressBarCurrentValue
         {
-            get { return m_isMonitoringActive; }
-            set { m_isMonitoringActive = value; }
+            get { return m_progressBarCurrentValue; }
+            set
+            {
+                m_progressBarCurrentValue = value;
+                OnPropertyChanged("ProgressBarCurrentValue");
+            }
         }
 
-        private ProjectModel _projectModel = new ProjectModel();
         private string m_buttonText = "Start";
         private string m_displayedPercentage = "0.000%";
+        private double ElapsedTime
+        {
+            get { return CurrentProject.ElapsedTime; }
+            set
+            {
+                CurrentProject.ElapsedTime = value;
+            }
+        }
         private double m_progressBarCurrentValue = 0;
-
         private bool m_isMasteryActive = false;
-        private Stopwatch m_dtStopwatch = new Stopwatch();
-        private Timer m_intervalTimer = new Timer();
-        private Timer m_backupTimer = new Timer();
-        private Timer m_mouseQueryTimer = new Timer();
-        private DateTime m_beginning;
-        private MainWindow m_mainWindow;
-        private Point previousPoint;
-        private WeightedBool m_isUserInactive = new WeightedBool();
         private bool m_isMonitoringActive;
+        private Timer m_tickTimer = new Timer();
+        private Timer m_backupTickTimer = new Timer();
+        private Timer m_mouseQueryTimer = new Timer();
+        private Stopwatch m_dtStopwatch = new Stopwatch();
+        private ProjectModel m_projectModel = new ProjectModel();
+        private WeightedBool m_isUserInactive = new WeightedBool();
+        private MainWindow m_mainWindow;
+        private DateTime m_previousDeltaQuery;
+        private Point previousPoint;
         private int m_previousHour;
         #endregion
 
@@ -110,7 +113,6 @@ namespace Mastery.ViewModels
         }
 
         #region Commands
-        // Save the project to a file
         public ICommand Save
         {
             get { return new RelayCommand(x => DoSave()); }
@@ -122,13 +124,17 @@ namespace Mastery.ViewModels
                 if (File.Exists(Properties.Settings.Default.LastLoadPath))
                 {
                     SaveSystem.SaveNoPrompt(CurrentProject);
+                    return;
                 }
-                return;
+                else
+                {
+                    SaveSystem.Save(CurrentProject);
+                    return;
+                }
             }
             SaveSystem.Save(CurrentProject);
         }
 
-        // Save the project to a new file
         public ICommand SaveAs
         {
             get { return new RelayCommand(x => DoSaveAs()); }
@@ -138,7 +144,6 @@ namespace Mastery.ViewModels
             SaveSystem.Save(CurrentProject);
         }
 
-        // Load project from a file
         public ICommand Load
         {
             get { return new RelayCommand(x => DoLoad()); }
@@ -149,8 +154,6 @@ namespace Mastery.ViewModels
             if (project != null)
             {
                 CurrentProject = project;
-                m_previousHour = CurrentProject.CurrentHour;
-                UpdateView();
                 if (m_isMasteryActive)
                 {
                     ToggleButton();
@@ -165,6 +168,17 @@ namespace Mastery.ViewModels
         private void DoMinimize()
         {
             m_mainWindow.WindowState = WindowState.Minimized;
+            m_mainWindow.Hide();
+        }
+
+        public ICommand RestoreWindow
+        {
+            get { return new RelayCommand(x => DoRestoreWindow()); }
+        }
+        private void DoRestoreWindow()
+        {
+            m_mainWindow.Show();
+            m_mainWindow.WindowState = WindowState.Normal;
         }
 
         public ICommand Details
@@ -187,7 +201,6 @@ namespace Mastery.ViewModels
             about.Show();
         }
 
-        // Shutdown the app and do so safely with saving
         public ICommand Shutdown
         {
             get { return new RelayCommand(x => DoShutdown()); }
@@ -225,41 +238,16 @@ namespace Mastery.ViewModels
             Application.Current.Shutdown();
         }
 
-        // Create a new project
         public ICommand NewProject
         {
-            get { return new RelayCommand(x => CreateNewProject()); }
+            get { return new RelayCommand(x => ShowNewProject()); }
         }
-        private void CreateNewProject()
+        private void ShowNewProject()
         {
             NewProject newProjectWindow = new NewProject(this);
             newProjectWindow.Show();
         }
 
-        //// Reset everything
-        //public ICommand Clear
-        //{
-        //    get { return new RelayCommand(x => DoClear()); }
-        //}
-        //private void DoClear()
-        //{
-        //    // Stop timer
-        //    if (m_isTimerRunning) { ToggleButton(); }
-
-        //    // Reset visuals to default
-        //    ButtonText = "Start";
-        //    DisplayedPercentage = "0.0000%";
-        //    ProgressBarCurrentValue = 0;
-
-        //    // Load default project
-        //    CurrentProject = new ProjectModel();
-        //    Properties.Settings.Default.Reset();
-
-        //    // Clear dirty values
-        //    UpdateView();
-        //}
-
-        // Process the button input
         public ICommand ProcessButton
         {
             get { return new RelayCommand(x => ToggleButton()); }
@@ -284,9 +272,9 @@ namespace Mastery.ViewModels
         }
         private void DoToggleMonitoring()
         {
-            if(IsMonitoringActive)
+            if (IsMonitoringActive)
             {
-                if(m_isMasteryActive)
+                if (m_isMasteryActive)
                 {
                     return;
                 }
@@ -311,92 +299,45 @@ namespace Mastery.ViewModels
         }
         #endregion
 
-        #region P/Invoke
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool GetCursorPos(ref Win32Point pt);
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct Win32Point
-        {
-            public Int32 X;
-            public Int32 Y;
-        };
-
-        public static Point GetMousePosition()
-        {
-            Win32Point w32Mouse = new Win32Point();
-            GetCursorPos(ref w32Mouse);
-            return new Point(w32Mouse.X, w32Mouse.Y);
-        }
-
-        // The GetForegroundWindow function returns a handle to the foreground window
-        // (the window  with which the user is currently working).
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
-
-        // The GetWindowThreadProcessId function retrieves the identifier of the thread
-        // that created the specified window and, optionally, the identifier of the
-        // process that created the window.
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern Int32 GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-        // Returns the name of the process owning the foreground window.
-        private string GetForegroundProcessName()
-        {
-            IntPtr hwnd = GetForegroundWindow();
-
-            // The foreground window can be NULL in certain circumstances, 
-            // such as when a window is losing activation.
-            if (hwnd == null)
-                return "Unknown";
-
-            uint pid;
-            GetWindowThreadProcessId(hwnd, out pid);
-
-            foreach (System.Diagnostics.Process p in System.Diagnostics.Process.GetProcesses())
-            {
-                if (p.Id == pid)
-                    return p.ProcessName;
-            }
-
-            return "Unknown";
-        }
-        #endregion
-
+        /// <summary>
+        /// Monitors the application in focus and the mouse movement
+        /// </summary>
         private void TickMouseQuery(Object source, System.Timers.ElapsedEventArgs e)
         {
-            string activeProcess = GetForegroundProcessName();
+            string activeProcess = Win32Helpers.GetForegroundProcessName();
             Console.WriteLine(activeProcess);
 
-            if (activeProcess == "Photoshop" || activeProcess == "CLIPStudioPaint")
+            // If user is in application to be monitored
+            foreach (string process in CurrentProject.Applications)
             {
-                Point p = GetMousePosition();
-                if (p == previousPoint)
+                if (activeProcess == process)
                 {
-                    m_isUserInactive.AddWeight(true);
-                    return;
+                    Point p = Win32Helpers.GetMousePosition();
+                    if (p == previousPoint) // mouse is idle
+                    {
+                        m_isUserInactive.AddWeight(true);
+                        return;
+                    }
+                    else // mouse is active
+                    {
+                        m_isUserInactive.SetFalse();
+                        previousPoint = p;
+                        return;
+                    }
                 }
-                m_isUserInactive.SetFalse();
-                previousPoint = p;
-                return;
             }
-            else
-            {
-                m_isUserInactive.SetTrue();
-                return;
-            }
+            m_isUserInactive.SetTrue();
         }
 
         private void Tick(Object source, System.Timers.ElapsedEventArgs e)
         {
-            if(!IsMonitoringActive)
+            if (!IsMonitoringActive)
             {
                 if (m_isMasteryActive)
                 {
                     ProcessTick();
                 }
-                m_beginning = DateTime.Now;
+                m_previousDeltaQuery = DateTime.Now;
                 return;
             }
 
@@ -407,40 +348,47 @@ namespace Mastery.ViewModels
                     ProcessTick();
                     return;
                 }
-                m_beginning = DateTime.Now;
+                m_previousDeltaQuery = DateTime.Now;
             }
-            m_beginning = DateTime.Now;
+            m_previousDeltaQuery = DateTime.Now;
         }
 
         private void ProcessTick()
         {
-            // Delta Time
-            CurrentProject.ElapsedTime += (DateTime.Now - m_beginning).TotalMilliseconds;
-            m_beginning = DateTime.Now;
+            double deltaTime = (DateTime.Now - m_previousDeltaQuery).TotalMilliseconds;
+            CurrentProject.ElapsedTime += deltaTime;
+            m_previousDeltaQuery = DateTime.Now;
 
-            // Get Elapsed Time 
+            // Set progress bar value
             double target = CurrentProject.TargetHours * 3600000.0;
             ProgressBarCurrentValue = (CurrentProject.ElapsedTime / target) * 100;
 
-            // Update
             UpdateView();
-        }
 
-        private void TickBackUp(Object source, System.Timers.ElapsedEventArgs e)
-        {
-            Properties.Settings.Default.Save();
+            // Check for hour change
             if (m_previousHour != CurrentProject.CurrentHour)
             {
                 m_previousHour = CurrentProject.CurrentHour;
+
+                // Invoked delegate on main thread for UI calls
                 Application.Current.Dispatcher.Invoke((Action)delegate
                 {
-
-                    ShowHourPlusPopUp();
-
+                    ShowHourPlusPopUp("Replace me with funny dialog!");
                 });
             }
         }
 
+        /// <summary>
+        /// Auto saves to prevent losses should the computer crash.
+        /// </summary>
+        private void TickBackUp(Object source, System.Timers.ElapsedEventArgs e)
+        {
+            Properties.Settings.Default.Save();
+        }
+
+        /// <summary>
+        /// Updates all elements of the main UI
+        /// </summary>
         private void UpdateView()
         {
             double target = CurrentProject.TargetHours * 3600000.0;
@@ -450,15 +398,19 @@ namespace Mastery.ViewModels
             OnPropertyChanged("TargetHours");
         }
 
-        private void ShowHourPlusPopUp()
+        /// <summary>
+        /// Create a popup with the provided message
+        /// </summary>
+        private void ShowHourPlusPopUp(string message)
         {
             SystemTrayPopup balloon = new SystemTrayPopup();
-            balloon.PopupText = "+1 Hour! " + "You can do one more, right?";
+            balloon.PopupText = "+1 Hour! " + message;
             m_mainWindow.ShowTaskbarPopup(balloon);
         }
 
         private void Initialize()
         {
+            // Load previous project if expected; warn if missing.
             if (Properties.Settings.Default.HasLoadPath)
             {
                 if (File.Exists(Properties.Settings.Default.LastLoadPath))
@@ -474,19 +426,23 @@ namespace Mastery.ViewModels
                     else { Properties.Settings.Default.HasLoadPath = false; }
                 }
             }
+            TickMouseQuery(null, null);
             UpdateView();
 
-            m_intervalTimer.Interval = 1;
-            m_intervalTimer.AutoReset = true;
-            m_intervalTimer.Elapsed += Tick;
-            m_beginning = DateTime.Now;
-            m_intervalTimer.Start();
+            // Set default tick timer
+            m_tickTimer.Interval = 1;
+            m_tickTimer.AutoReset = true;
+            m_tickTimer.Elapsed += Tick;
+            m_previousDeltaQuery = DateTime.Now;
+            m_tickTimer.Start();
 
-            m_backupTimer.Interval = 5000; // 5 seconds
-            m_backupTimer.AutoReset = true;
-            m_backupTimer.Elapsed += TickBackUp;
-            m_backupTimer.Start();
+            // Set auto save timer
+            m_backupTickTimer.Interval = 5000; // 5 seconds
+            m_backupTickTimer.AutoReset = true;
+            m_backupTickTimer.Elapsed += TickBackUp;
+            m_backupTickTimer.Start();
 
+            // Set mouse query timer
             m_mouseQueryTimer.Interval = 1000; // 1 second
             m_mouseQueryTimer.AutoReset = true;
             m_mouseQueryTimer.Elapsed += TickMouseQuery;

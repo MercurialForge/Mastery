@@ -32,7 +32,6 @@ namespace Mastery
         private void Window_Closed(object sender, EventArgs e)
         {
             Properties.Settings.Default.Save();
-            
         }
 
         private void MainMenu_MouseDown(object sender, MouseButtonEventArgs e)
@@ -44,6 +43,13 @@ namespace Mastery
         public void ShowTaskbarPopup (UIElement balloon)
         {
             MyNotifyIcon.ShowCustomBalloon(balloon, PopupAnimation.Fade, 4000);
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            //clean up notifyicon (would otherwise stay open until application finishes)
+            MyNotifyIcon.Dispose();
+            base.OnClosing(e);
         }
     }
 }

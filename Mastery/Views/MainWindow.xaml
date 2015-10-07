@@ -6,21 +6,26 @@
         xmlns:tb="http://www.hardcodet.net/taskbar"
         Title="Mastery" Height="130" Width="525" ResizeMode="NoResize" MaxHeight="130" MinWidth="350" MaxWidth="1500" Closed="Window_Closed" WindowStyle="None" MinHeight="130" Icon="/Mastery;component/Resources/favicon.ico">
     <Grid Background="LightGray">
-        
-        <!-- in order to declare a NotifyIcon, all you need is the namespace declaration (see above on line 5) and a single line -->
-        <tb:TaskbarIcon x:Name="MyNotifyIcon" IconSource="/Mastery;component/Resources/favicon.ico" ToolTipText="Mastery" />
 
+        <!-- in order to declare a NotifyIcon, all you need is the namespace declaration (see above on line 5) and a single line -->
+        <tb:TaskbarIcon 
+            x:Name="MyNotifyIcon" 
+            IconSource="/Mastery;component/Resources/favicon.ico" 
+            ToolTipText="Mastery" 
+            LeftClickCommand="{Binding RestoreWindow}"/>
+
+        <!-- Dock Main Menu -->
         <DockPanel VerticalAlignment="Top" Height="20">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="133"/>
+                    <ColumnDefinition Width="180"/>
                     <ColumnDefinition/>
                     <ColumnDefinition Width="23"/>
                     <ColumnDefinition Width="23"/>
                 </Grid.ColumnDefinitions>
                 <Menu Grid.Column="0" DockPanel.Dock="Top" Background="white">
+                    <!-- FILE -->
                     <MenuItem Header="_File">
-                        <!--<MenuItem Header="Clear" Command="{Binding Clear}" ToolTip="Reset to defaults"/>-->
                         <MenuItem Header="_New" Command="{Binding NewProject}"/>
                         <MenuItem Header="_Open" Command="{Binding Load}"/>
                         <MenuItem Header="_Save" Command="{Binding Save}"/>
@@ -28,11 +33,15 @@
                         <Separator/>
                         <MenuItem Header="E_xit" Command="{Binding Shutdown}" ToolTip="Exit the application"/>
                     </MenuItem>
+                    <!-- PROJECT-->
                     <MenuItem Header="_Project">
-                        <MenuItem Header="_Monitor Activity" IsCheckable="True" IsChecked="{Binding IsMonitoringActive, Mode=TwoWay}" Command="{Binding ToggleMonitoring}"/>
-                        <Separator/>
-                        <MenuItem Header="_Details" Command="{Binding Details}"/> 
+                        <MenuItem Header="_Details" Command="{Binding Details}"/>
                     </MenuItem>
+                    <!-- OPTIONS-->
+                    <MenuItem Header="_Options">
+                        <MenuItem Header="_Activity Monitor" IsCheckable="True" IsChecked="{Binding IsMonitoringActive, Mode=TwoWay}" Command="{Binding ToggleMonitoring}"/>
+                    </MenuItem>
+                    <!-- HELP -->
                     <MenuItem Header="_Help">
                         <MenuItem Header="_About" Command="{Binding About}"/>
                     </MenuItem>
