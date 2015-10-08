@@ -394,7 +394,7 @@ namespace Mastery.ViewModels
         {
             LoadLastActiveMPF();
 
-            m_activityTimer = new UserActivityTimer(1000);
+            m_activityTimer = new UserActivityTimer(10000);
             m_activityTimer.Enable();
 
             // Set default tick timer
