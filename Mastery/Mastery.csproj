@@ -91,6 +91,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Utilities\CleverDialog.cs" />
+    <Compile Include="Utilities\UserActivityTimer.cs" />
     <Compile Include="Utilities\WeightedBool.cs" />
     <Compile Include="Utilities\Win32Helpers.cs" />
     <Compile Include="Views\AboutWindow.xaml.cs">

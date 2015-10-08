@@ -15,31 +15,32 @@
             LeftClickCommand="{Binding RestoreWindow}"/>
 
         <!-- Dock Main Menu -->
-        <DockPanel VerticalAlignment="Top" Height="20">
+        <DockPanel VerticalAlignment="Top" Height="20" Background="White">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="180"/>
+                    <ColumnDefinition Width="135"/>
                     <ColumnDefinition/>
                     <ColumnDefinition Width="23"/>
                     <ColumnDefinition Width="23"/>
                 </Grid.ColumnDefinitions>
-                <Menu Grid.Column="0" DockPanel.Dock="Top" Background="white">
+                <Menu Grid.Column="0" DockPanel.Dock="Top" Background="white" Margin="5,0,0,0" VerticalAlignment="Center">
                     <!-- FILE -->
                     <MenuItem Header="_File">
                         <MenuItem Header="_New" Command="{Binding NewProject}"/>
                         <MenuItem Header="_Open" Command="{Binding Load}"/>
+                        <Separator/>
                         <MenuItem Header="_Save" Command="{Binding Save}"/>
                         <MenuItem Header="Save _As" Command="{Binding SaveAs}"/>
                         <Separator/>
-                        <MenuItem Header="E_xit" Command="{Binding Shutdown}" ToolTip="Exit the application"/>
-                    </MenuItem>
-                    <!-- PROJECT-->
-                    <MenuItem Header="_Project">
                         <MenuItem Header="_Details" Command="{Binding Details}"/>
+                        <Separator/>
+                        <MenuItem Header="E_xit" Command="{Binding Shutdown}" ToolTip="Exit the application"/>
                     </MenuItem>
                     <!-- OPTIONS-->
                     <MenuItem Header="_Options">
                         <MenuItem Header="_Activity Monitor" IsCheckable="True" IsChecked="{Binding IsMonitoringActive, Mode=TwoWay}" Command="{Binding ToggleMonitoring}"/>
+                        <Separator/>
+                        <MenuItem Header="_Show Popups" IsCheckable="True" IsChecked="{Binding Source= {x:Static p:Settings.Default},Path=ShowPopups,Mode=TwoWay}"/>
                     </MenuItem>
                     <!-- HELP -->
                     <MenuItem Header="_Help">
