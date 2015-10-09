@@ -57,6 +57,28 @@ namespace Mastery.Utilities
 
             return "Unknown";
         }
+
+        // Returns the name of the process owning the foreground window.
+        public static string GetForegroundProcessName(int id)
+        {
+            IntPtr hwnd = GetForegroundWindow();
+
+            // The foreground window can be NULL in certain circumstances, 
+            // such as when a window is losing activation.
+            if (hwnd == null)
+                return "Unknown";
+
+            uint pid;
+            GetWindowThreadProcessId(hwnd, out pid);
+
+            foreach (System.Diagnostics.Process p in System.Diagnostics.Process.GetProcesses())
+            {
+                if (p.Id == pid)
+                    return p.ProcessName;
+            }
+
+            return "Unknown";
+        }
         #endregion
     }
 }

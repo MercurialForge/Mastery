@@ -352,6 +352,15 @@ namespace Mastery.ViewModels
             ProcessHourChangePopup();
         }
 
+        private void UpdateView()
+        {
+            double target = CurrentProject.TargetHours * 3600000.0;
+            ProgressBarCurrentValue = (CurrentProject.ElapsedTime / target) * 100;
+            DisplayedPercentage = ((ProgressBarCurrentValue >= 100) ? 100 : ProgressBarCurrentValue).ToString("F4") + "%";
+            OnPropertyChanged("CurrentHour");
+            OnPropertyChanged("TargetHours");
+        }
+
         private void ProcessHourChangePopup()
         {
             if (m_previousHour != CurrentProject.CurrentHour)
@@ -374,15 +383,6 @@ namespace Mastery.ViewModels
                 balloon.PopupText = "+1 Hour! " + CleverDialog.Next();
                 m_mainWindow.ShowTaskbarPopup(balloon);
             }
-        }
-
-        private void UpdateView()
-        {
-            double target = CurrentProject.TargetHours * 3600000.0;
-            ProgressBarCurrentValue = (CurrentProject.ElapsedTime / target) * 100;
-            DisplayedPercentage = ((ProgressBarCurrentValue >= 100) ? 100 : ProgressBarCurrentValue).ToString("F4") + "%";
-            OnPropertyChanged("CurrentHour");
-            OnPropertyChanged("TargetHours");
         }
 
         private void TickAutoSave(object userState)

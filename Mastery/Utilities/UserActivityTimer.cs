@@ -24,7 +24,7 @@ namespace Mastery.Utilities
         [DllImport("User32.dll")]
         private static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 
-        #region "Fields"
+        #region Fields
 
         private long _idleThreshold;
         private uint _lastActivity;
@@ -39,7 +39,7 @@ namespace Mastery.Utilities
 
         #endregion
 
-        #region "Events"
+        #region Events
         [Description("Occurs when the user becomes active.")]
         public event EventHandler UserActiveEvent;
 
@@ -47,7 +47,7 @@ namespace Mastery.Utilities
         public event EventHandler UserIdleEvent;
         #endregion
 
-        #region "Methods"
+        #region Methods
 
         /// <summary>
         /// Constructs a new timer to track the idle/activity status of the user.
@@ -185,7 +185,7 @@ namespace Mastery.Utilities
         }
         #endregion
 
-        #region "Properties"
+        #region Properties
 
         /// <summary>
         /// Gets the time the timer was created or last reset.
@@ -264,7 +264,7 @@ namespace Mastery.Utilities
         }
         #endregion
 
-        #region "Nested Types"
+        #region Nested Types
         [StructLayout(LayoutKind.Sequential)]
         internal struct LASTINPUTINFO
         {
