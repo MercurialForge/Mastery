@@ -249,6 +249,16 @@ namespace Mastery.ViewModels
             newProjectWindow.Show();
         }
 
+        public ICommand ShowMonitorControl
+        {
+            get { return new RelayCommand(x => DoShowmMonitorControl()); }
+        }
+        private void DoShowmMonitorControl()
+        {
+            MonitorWindow monitor = new MonitorWindow(this);
+            monitor.Show();
+        }
+
         public ICommand ToggleMonitoring
         {
             get { return new RelayCommand(c => DoToggleMonitoring()); }

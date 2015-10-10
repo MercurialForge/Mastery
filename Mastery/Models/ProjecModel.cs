@@ -11,25 +11,26 @@ namespace Mastery.Utilities
     {
         // Saved and Loaded Properties
         public string Task { get; set; }
-        public DateTime StartDate {get; set;}
+        public DateTime StartDate { get; set; }
         public double TargetHours { get; set; }
         public double ElapsedTime { get; set; }
         public bool IsMonitoring { get; set; }
-        public List<string> Applications = new List<string>();
+        public List<string> Applications { get; set; }
 
         // Query Properties
-        public int CurrentHour 
-        { 
-            get 
+        public int CurrentHour
+        {
+            get
             {
                 TimeSpan timespan = TimeSpan.FromMilliseconds(ElapsedTime);
                 return (int)timespan.TotalHours;
-            } 
+            }
         }
 
         // Constructor
-        public ProjectModel ()
+        public ProjectModel()
         {
+            Applications = new List<string>();
             Task = "Drawing";
             StartDate = DateTime.Now;
             TargetHours = 5000;

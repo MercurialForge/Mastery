@@ -18,7 +18,7 @@
         <DockPanel VerticalAlignment="Top" Height="20" Background="White">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="135"/>
+                    <ColumnDefinition Width="150"/>
                     <ColumnDefinition/>
                     <ColumnDefinition Width="23"/>
                     <ColumnDefinition Width="23"/>
@@ -37,9 +37,10 @@
                         <MenuItem Header="E_xit" Command="{Binding Shutdown}" ToolTip="Exit the application"/>
                     </MenuItem>
                     <!-- OPTIONS-->
-                    <MenuItem Header="_Options">
-                        <MenuItem Header="_Activity Monitor" IsCheckable="True" IsChecked="{Binding IsMonitoringActive, Mode=TwoWay}" Command="{Binding ToggleMonitoring}"/>
+                    <MenuItem Header="_Monitoring">
+                        <MenuItem Header="_View Monitor Management" Command="{Binding ShowMonitorControl}"/>
                         <Separator/>
+                        <MenuItem Header="_Activity Monitor" IsCheckable="True" IsChecked="{Binding IsMonitoringActive, Mode=TwoWay}" Command="{Binding ToggleMonitoring}"/>
                         <MenuItem Header="_Show Popups" IsCheckable="True" IsChecked="{Binding Source= {x:Static p:Settings.Default},Path=ShowPopups,Mode=TwoWay}"/>
                     </MenuItem>
                     <!-- HELP -->

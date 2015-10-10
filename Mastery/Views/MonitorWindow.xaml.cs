@@ -1,67 +1,127 @@
-﻿using System;
+﻿using Mastery.Utilities;
+using Mastery.ViewModels;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace Mastery.Views
 {
     /// <summary>
     /// Interaction logic for MonitorWindow.xaml
     /// </summary>
-    public partial class MonitorWindow : Window
+    public partial class MonitorWindow : Window, INotifyPropertyChanged
     {
-        public BindingList<string> OutputLog { get; private set; }
-        public Dictionary<string, int> applications = new Dictionary<string, int>();
-
-        public MonitorWindow()
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected virtual void OnPropertyChanged(string propertyName)
         {
-            InitializeComponent();
-            OutputLog = new BindingList<string>();
-
-            // move to async
-            System.Diagnostics.Process[] procArray;
-            procArray = System.Diagnostics.Process.GetProcesses();
-            for (int i = 0; i < procArray.Length; i++)
+            PropertyChangedEventHandler handler = this.PropertyChanged;
+            if (handler != null)
             {
-                if (procArray[i].MainWindowTitle.Length > 0)
+                var e = new PropertyChangedEventArgs(propertyName);
+                handler(this, e);
+            }
+        }
+
+        public MainWindowViewModel MainWindow { get; set; }
+        public ObservableCollection<string> MonitoredApps { get; set; }
+        public ObservableCollection<string> ActiveApps { get; set; }
+        public string CurrentlySelected { get; set; }
+        public string CurrentlySelectedApp { get; set; }
+
+        public ICommand AddSelected
+        {
+            get { return new RelayCommand(x => DoAddSelected(), x => CheckIfCanAdd()); }
+        }
+
+        private bool CheckIfCanAdd()
+        {
+            return (!string.IsNullOrEmpty(CurrentlySelectedApp) && !MonitoredApps.Contains(CurrentlySelectedApp));
+        }
+
+        private void DoAddSelected()
+        {
+            if (!MonitoredApps.Contains(CurrentlySelectedApp))
+            {
+                MonitoredApps.Add(CurrentlySelectedApp);
+                MainWindow.CurrentProject.Applications = MonitoredApps.ToList();
+            }
+        }
+
+        public ICommand RemoveSelected
+        {
+            get { return new RelayCommand(x => DoRemoveSelected(), x => (!string.IsNullOrEmpty(CurrentlySelected))); }
+        }
+
+        private void DoRemoveSelected()
+        {
+            MonitoredApps.Remove(CurrentlySelected);
+            MainWindow.CurrentProject.Applications = MonitoredApps.ToList();
+        }
+
+        public MonitorWindow(MainWindowViewModel parentViewModel)
+        {
+            DataContext = this;
+            MainWindow = parentViewModel;
+            MonitoredApps = new ObservableCollection<string>(MainWindow.CurrentProject.Applications);
+            ActiveApps = new ObservableCollection<string>();
+            InitializeComponent();
+            UpdateAppsList();
+            comboBox.SelectedIndex = 0;
+        }
+
+        private async void UpdateAppsList()
+        {
+            List<string> applications = new List<string>();
+            while (true)
+            {
+                applications.Clear();
+
+                Process[] AllProcesses = Process.GetProcesses();
+                Process self = Process.GetCurrentProcess();
+                for (int i = 0; i < AllProcesses.Length; i++)
                 {
-                    if (!applications.ContainsKey(procArray[i].MainWindowTitle))
+                    string processName = AllProcesses[i].ProcessName;
+                    if (!string.IsNullOrEmpty(AllProcesses[i].MainWindowTitle))
                     {
-                        applications.Add(procArray[i].MainWindowTitle, procArray[i].Id);
+                        if (!applications.Contains(processName))
+                        {
+                            applications.Add(processName);
+                        }
                     }
                 }
-            }
-            foreach (KeyValuePair<string, int> app in applications)
-            {
-                comboBox.Items.Add(app.Key);
-            }
-        }
 
-        private void comboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            string name = "";
-            foreach (System.Diagnostics.Process p in System.Diagnostics.Process.GetProcesses())
-            {
-                if (p.Id == applications[(string)comboBox.SelectedItem])
-                    name = p.ProcessName;
-            }
-            Console.WriteLine(name);
-        }
+                foreach (string app in applications)
+                {
+                    if (ActiveApps.Contains(app)) { continue; }
+                    else
+                    {
+                        ActiveApps.Add(app);
+                    }
+                }
 
-        private void OutputText_Updated(object sender, SizeChangedEventArgs e)
-        {
-            this.m_scrollViewer.UpdateLayout();
-            this.m_scrollViewer.ScrollToVerticalOffset(this.m_outputLog.ActualHeight);
+                List<string> ClosedApps = new List<string>();
+                foreach(string s in ActiveApps)
+                {
+                    if (applications.Contains(s)) { continue; }
+                    else
+                    {
+                        ClosedApps.Add(s);
+                    }
+                }
+
+                foreach(string s in ClosedApps)
+                {
+                    ActiveApps.Remove(s);
+                }
+
+                await Task.Delay(500);
+            }
         }
     }
 }
