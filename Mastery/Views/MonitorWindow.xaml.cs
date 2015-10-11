@@ -1,10 +1,12 @@
 ﻿using Mastery.Utilities;
 using Mastery.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
@@ -34,16 +36,17 @@ namespace Mastery.Views
         public string CurrentlySelected { get; set; }
         public string CurrentlySelectedApp { get; set; }
 
+        private Timer m_pullAppsTimer;
+
+        #region Commands
         public ICommand AddSelected
         {
             get { return new RelayCommand(x => DoAddSelected(), x => CheckIfCanAdd()); }
         }
-
         private bool CheckIfCanAdd()
         {
             return (!string.IsNullOrEmpty(CurrentlySelectedApp) && !MonitoredApps.Contains(CurrentlySelectedApp));
         }
-
         private void DoAddSelected()
         {
             if (!MonitoredApps.Contains(CurrentlySelectedApp))
@@ -57,70 +60,65 @@ namespace Mastery.Views
         {
             get { return new RelayCommand(x => DoRemoveSelected(), x => (!string.IsNullOrEmpty(CurrentlySelected))); }
         }
-
         private void DoRemoveSelected()
         {
             MonitoredApps.Remove(CurrentlySelected);
             MainWindow.CurrentProject.Applications = MonitoredApps.ToList();
-        }
+        } 
+        #endregion
 
         public MonitorWindow(MainWindowViewModel parentViewModel)
         {
-            DataContext = this;
-            MainWindow = parentViewModel;
-            MonitoredApps = new ObservableCollection<string>(MainWindow.CurrentProject.Applications);
-            ActiveApps = new ObservableCollection<string>();
             InitializeComponent();
-            UpdateAppsList();
+            MainWindow = parentViewModel;
+            ActiveApps = new ObservableCollection<string>();
+            MonitoredApps = new ObservableCollection<string>(MainWindow.CurrentProject.Applications);
+            m_pullAppsTimer = new Timer(new TimerCallback(this.UpdateAppsList), null, 0, 500);
             comboBox.SelectedIndex = 0;
+            DataContext = this;
         }
 
-        private async void UpdateAppsList()
+        private void UpdateAppsList(object unused)
         {
             List<string> applications = new List<string>();
-            while (true)
+            applications.Clear();
+
+            Process[] AllProcesses = Process.GetProcesses();
+            Process self = Process.GetCurrentProcess();
+            for (int i = 0; i < AllProcesses.Length; i++)
             {
-                applications.Clear();
-
-                Process[] AllProcesses = Process.GetProcesses();
-                Process self = Process.GetCurrentProcess();
-                for (int i = 0; i < AllProcesses.Length; i++)
+                string processName = AllProcesses[i].ProcessName;
+                if (!string.IsNullOrEmpty(AllProcesses[i].MainWindowTitle))
                 {
-                    string processName = AllProcesses[i].ProcessName;
-                    if (!string.IsNullOrEmpty(AllProcesses[i].MainWindowTitle))
+                    if (!applications.Contains(processName))
                     {
-                        if (!applications.Contains(processName))
-                        {
-                            applications.Add(processName);
-                        }
+                        applications.Add(processName);
                     }
                 }
+            }
 
-                foreach (string app in applications)
+            foreach (string app in applications)
+            {
+                if (ActiveApps.Contains(app)) { continue; }
+                else
                 {
-                    if (ActiveApps.Contains(app)) { continue; }
-                    else
-                    {
-                        ActiveApps.Add(app);
-                    }
+                    Application.Current.Dispatcher.Invoke((Action)delegate { ActiveApps.Add(app); });
                 }
+            }
 
-                List<string> ClosedApps = new List<string>();
-                foreach(string s in ActiveApps)
+            List<string> ClosedApps = new List<string>();
+            foreach (string s in ActiveApps)
+            {
+                if (applications.Contains(s)) { continue; }
+                else
                 {
-                    if (applications.Contains(s)) { continue; }
-                    else
-                    {
-                        ClosedApps.Add(s);
-                    }
+                    ClosedApps.Add(s);
                 }
+            }
 
-                foreach(string s in ClosedApps)
-                {
-                    ActiveApps.Remove(s);
-                }
-
-                await Task.Delay(500);
+            foreach (string s in ClosedApps)
+            {
+                Application.Current.Dispatcher.Invoke((Action)delegate { ActiveApps.Remove(s); });
             }
         }
     }

@@ -7,6 +7,8 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace Mastery.ViewModels
 {
@@ -19,9 +21,16 @@ namespace Mastery.ViewModels
             set
             {
                 m_projectModel = value;
-                m_previousHour = m_projectModel.CurrentHour;
-                IsMonitoringActive = m_projectModel.IsMonitoring;
-                if (IsMonitoringActive) { DoProcessButton(); }
+                m_previousHour = CurrentProject.CurrentHour;
+                IsMonitoringActive = CurrentProject.IsMonitoring; 
+                if (IsMonitoringActive) 
+                {
+                    DoProcessButton();
+                    ActivityIcon = (CurrentProject.Applications.Count == 0) ? m_error : m_inactive;
+                }else
+                {
+                    ActivityIcon = null;
+                }
                 OnPropertyChanged("TargetHours");
                 OnPropertyChanged("TaskTitle");
                 OnPropertyChanged("CurrentHour");
@@ -81,6 +90,16 @@ namespace Mastery.ViewModels
                 OnPropertyChanged("ProgressBarCurrentValue");
             }
         }
+        public ImageSource ActivityIcon
+        {
+            get { return m_activityIcon; }
+            set
+            {
+                if (m_activityIcon == value) { return; }
+                m_activityIcon = value;
+                OnPropertyChanged("ActivityIcon");
+            }
+        }
         #endregion
 
         #region Fields
@@ -105,6 +124,10 @@ namespace Mastery.ViewModels
         private DateTime m_previousDeltaQuery;
         private int m_previousHour;
         private UserActivityTimer m_activityTimer;
+        private ImageSource m_activityIcon;
+        private ImageSource m_active;
+        private ImageSource m_inactive;
+        private ImageSource m_error;
         #endregion
 
         public MainWindowViewModel(Window mainWindow)
@@ -251,9 +274,9 @@ namespace Mastery.ViewModels
 
         public ICommand ShowMonitorControl
         {
-            get { return new RelayCommand(x => DoShowmMonitorControl()); }
+            get { return new RelayCommand(x => DoShowMonitorControl()); }
         }
-        private void DoShowmMonitorControl()
+        private void DoShowMonitorControl()
         {
             MonitorWindow monitor = new MonitorWindow(this);
             monitor.Show();
@@ -267,28 +290,25 @@ namespace Mastery.ViewModels
         {
             if (IsMonitoringActive)
             {
-                if (m_isMasteryActive)
-                {
-                    return;
-                }
-                else
+                if (!m_isMasteryActive)
                 {
                     DoProcessButton();
-                    return;
+                }
+                if (CurrentProject.Applications.Count == 0)
+                {
+                    MessageBoxResult result = MessageBox.Show("Monitoring is useless without at least one application to monitor. Please select one in the follower menu.", "Select Apps to Monitor", MessageBoxButton.OK);
+                    DoShowMonitorControl();
                 }
             }
             else
             {
+                ActivityIcon = null;
                 if (m_isMasteryActive)
                 {
                     DoProcessButton();
-                    return;
-                }
-                else
-                {
-                    return;
                 }
             }
+
         }
 
         public ICommand ProcessButton
@@ -313,7 +333,11 @@ namespace Mastery.ViewModels
         #region Private Methods
         private void Tick(object userState)
         {
-            if (!m_isMasteryActive) { return; }
+            if (!m_isMasteryActive)
+            {
+                m_previousDeltaQuery = DateTime.Now;
+                return;
+            }
 
             if (IsMonitoringActive)
             {
@@ -332,8 +356,15 @@ namespace Mastery.ViewModels
 
         private bool UserIsActive()
         {
+            if(CurrentProject.Applications.Count == 0)
+            {
+                ActivityIcon = m_error;
+                return false;
+            }
+
             if (m_activityTimer.UserActiveState == UserActivityState.Inactive || m_activityTimer.UserActiveState == UserActivityState.Unknown)
             {
+                ActivityIcon = m_inactive;
                 return false;
             }
 
@@ -342,9 +373,11 @@ namespace Mastery.ViewModels
             {
                 if (application == activeProcess)
                 {
+                    ActivityIcon = m_active;
                     return true;
                 }
             }
+            ActivityIcon = m_inactive;
             return false;
         }
 
@@ -378,14 +411,11 @@ namespace Mastery.ViewModels
                 m_previousHour = CurrentProject.CurrentHour;
 
                 // Invoked delegate on main thread for UI calls
-                Application.Current.Dispatcher.Invoke((Action)delegate
-                {
-                    ShowHourPlusPopUp("Replace me with funny dialog!");
-                });
+                Application.Current.Dispatcher.Invoke((Action)delegate { ShowHourPlusPopUp(); });
             }
         }
 
-        private void ShowHourPlusPopUp(string message)
+        private void ShowHourPlusPopUp()
         {
             if (Properties.Settings.Default.ShowPopups)
             {
@@ -397,11 +427,24 @@ namespace Mastery.ViewModels
 
         private void TickAutoSave(object userState)
         {
+            if (Properties.Settings.Default.HasLoadPath)
+            {
+                if (File.Exists(Properties.Settings.Default.LastLoadPath))
+                {
+                    SaveSystem.SaveNoPrompt(CurrentProject);
+                }
+            }
+
             Properties.Settings.Default.Save();
         }
 
         private void Initialize()
         {
+            m_active = new BitmapImage(new Uri("pack://application:,,,/Mastery;component/Resources/Active.ico"));
+            m_inactive = new BitmapImage(new Uri("pack://application:,,,/Mastery;component/Resources/Inactive.ico"));
+            m_error = new BitmapImage(new Uri("pack://application:,,,/Mastery;component/Resources/Error.ico"));
+            ActivityIcon = null;
+
             LoadLastActiveMPF();
 
             m_activityTimer = new UserActivityTimer(10000);

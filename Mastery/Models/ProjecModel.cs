@@ -35,8 +35,6 @@ namespace Mastery.Utilities
             StartDate = DateTime.Now;
             TargetHours = 5000;
             ElapsedTime = 0.0;
-            Applications.Add("CLIPStudioPaint");
-            Applications.Add("Photoshop");
         }
     }
 }

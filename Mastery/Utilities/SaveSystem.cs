@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using Microsoft.Win32;
+using System.Windows;
 
 namespace Mastery.Utilities
 {
@@ -31,39 +32,58 @@ namespace Mastery.Utilities
 
         private static void SaveProjectModel(ProjectModel project, string fileName, bool SetStartDate = false)
         {
-            using (BinaryWriter writer = new BinaryWriter(File.Open(fileName, FileMode.Create)))
+
+            string[] rawName = new FileInfo(fileName).Name.Split('.');
+            string rawDirectory = new FileInfo(fileName).DirectoryName;
+            string pathTmp = Path.Combine(rawDirectory, rawName[0] + ".tmp");
+
+            // clean
+            File.Delete(pathTmp);
+
+            // write temp
+            using (BinaryWriter writer = new BinaryWriter(File.Open(pathTmp, FileMode.Create)))
             {
                 writer.Write(Encoding.UTF8.GetBytes("MPF0")); // magic
-                writer.Write(project.Task.Count());
+                writer.Write((UInt16)0); // save space for length
+                writer.Write((byte)2); // Version Number
+                writer.Write((byte)project.Task.Count());
                 writer.Write(Encoding.UTF8.GetBytes(project.Task));
                 if (SetStartDate)
                 {
-                    writer.Write(DateTime.Now.Month);
-                    writer.Write(DateTime.Now.Day);
+                    writer.Write((byte)DateTime.Now.Month);
+                    writer.Write((byte)DateTime.Now.Day);
                     writer.Write(DateTime.Now.Year);
-                    writer.Write(DateTime.Now.Hour);
-                    writer.Write(DateTime.Now.Minute);
+                    writer.Write((byte)DateTime.Now.Hour);
+                    writer.Write((byte)DateTime.Now.Minute);
                 }
                 else
                 {
-                    writer.Write(project.StartDate.Month);
-                    writer.Write(project.StartDate.Day);
+                    writer.Write((byte)project.StartDate.Month);
+                    writer.Write((byte)project.StartDate.Day);
                     writer.Write(project.StartDate.Year);
-                    writer.Write(project.StartDate.Hour);
-                    writer.Write(project.StartDate.Minute);
+                    writer.Write((byte)project.StartDate.Hour);
+                    writer.Write((byte)project.StartDate.Minute);
                 }
-                writer.Write(project.TargetHours);
+                writer.Write((uint)project.TargetHours);
                 writer.Write(project.ElapsedTime);
 
-                // added in V1.1 should automaticlly be added by the default project and updated next save. Typically 5 seconds after load.
                 writer.Write(project.IsMonitoring);
-                writer.Write(project.Applications.Count);
-                for(int i = 0; i < project.Applications.Count; i++)
+                writer.Write((byte)project.Applications.Count);
+
+                for (int i = 0; i < project.Applications.Count; i++)
                 {
-                    writer.Write(project.Applications[i].Count());
+                    writer.Write((byte)project.Applications[i].Count());
                     writer.Write(Encoding.UTF8.GetBytes(project.Applications[i]));
                 }
+                writer.Seek(4, 0);
+                writer.Write((UInt16)writer.BaseStream.Length);
             }
+
+            // overwrite save
+            File.Copy(pathTmp, fileName, true);
+
+            // it's safe, delete the temp now
+            File.Delete(pathTmp);
         }
         #endregion
 
@@ -94,6 +114,7 @@ namespace Mastery.Utilities
 
         private static ProjectModel LoadProjectModel(string loadPath)
         {
+            Properties.Settings.Default.Reset();
             ProjectModel project = new ProjectModel();
 
             using (BinaryReader reader = new BinaryReader(File.Open(loadPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
@@ -101,38 +122,43 @@ namespace Mastery.Utilities
                 // Skip Magic
                 reader.BaseStream.Seek(4, 0);
 
+                // Validate
+                bool isValid = (reader.ReadUInt16() == reader.BaseStream.Length);
+                if (!isValid) { ShowCorruptionMessage(); return new ProjectModel(); }
+
+                bool correctVersion = (reader.ReadByte() == 2);
+                if (!isValid) { ShowIncompatibleVersionMessage(); return new ProjectModel(); }
+
                 // Read Task Name
-                int taskTitleLength = reader.ReadInt32();
+                int taskTitleLength = reader.ReadByte();
                 project.Task = new string(reader.ReadChars(taskTitleLength));
 
                 // Get DateTime of Project Beginning
-                int month = reader.ReadInt32();
-                int day = reader.ReadInt32();
+                int month = reader.ReadByte();
+                int day = reader.ReadByte();
                 int year = reader.ReadInt32();
-                int hour = reader.ReadInt32();
-                int minute = reader.ReadInt32();
+                int hour = reader.ReadByte();
+                int minute = reader.ReadByte();
                 DateTime dateTime = new DateTime(year, month, day, hour, minute, 0, 0);
                 project.StartDate = dateTime;
 
                 // Get Target Hours
-                project.TargetHours = reader.ReadDouble();
+                project.TargetHours = reader.ReadUInt32();
 
                 // Get Total Elapsed Time
                 project.ElapsedTime = reader.ReadDouble();
 
-                bool isEndOfStream = reader.BaseStream.Position == reader.BaseStream.Length;
+                project.IsMonitoring = reader.ReadBoolean();
 
-                if (!isEndOfStream)
+                int applicationCount = reader.ReadByte();
+
+                if (applicationCount != 0)
                 {
-                    // added in V1.1 should automaticlly be added by the default project and updated next save. Typically 5 seconds after load.
-                    project.IsMonitoring = reader.ReadBoolean();
-
-                    int applicationCount = reader.ReadInt32();
                     for (int i = 0; i < applicationCount; i++)
                     {
-                        int charLength = reader.ReadInt32();
+                        int charLength = reader.ReadByte();
                         string application = new string(reader.ReadChars(charLength));
-                        if(!project.Applications.Contains(application))
+                        if (!project.Applications.Contains(application))
                         {
                             project.Applications.Add(application);
                         }
@@ -144,6 +170,16 @@ namespace Mastery.Utilities
         #endregion
 
         #region Utilities
+        private static void ShowIncompatibleVersionMessage()
+        {
+            MessageBoxResult result = MessageBox.Show("Incompatible Version. Please Initialize a NEW file", "Wrong Version", MessageBoxButton.OK);
+        }
+
+        private static void ShowCorruptionMessage()
+        {
+            MessageBoxResult result = MessageBox.Show("The save appears corrupted. If a \".tmp\" file is present, rename it's extention to \".MPF\" to recover your data", "Corrupted File", MessageBoxButton.OK);
+        }
+
         private static bool OpenFile(out string outPath)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
