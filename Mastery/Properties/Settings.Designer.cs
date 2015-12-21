@@ -46,5 +46,17 @@ namespace Mastery.Properties {
                 this["HasLoadPath"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowPopups {
+            get {
+                return ((bool)(this["ShowPopups"]));
+            }
+            set {
+                this["ShowPopups"] = value;
+            }
+        }
     }
 }

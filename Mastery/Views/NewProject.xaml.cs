@@ -3,6 +3,7 @@ using Mastery.ViewModels;
 using System;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Input;
@@ -52,11 +53,20 @@ namespace Mastery.Views
                 OnPropertyChanged("HoursValue");
             }
         }
+        public string InitialHoursValue 
+        {
+            get { return m_intialHoursValue; }
+            set
+            {
+                m_intialHoursValue = value;
+                OnPropertyChanged("InitialHoursValue");
+            }
+        }
 
         private MainWindowViewModel mainVM;
-        private Timer m_timer = new Timer();
         private string m_taskText = "";
         private string m_hoursValue = "";
+        private string m_intialHoursValue = "";
         private bool m_canCreate;
         
         public NewProject(MainWindowViewModel mainWindow)
@@ -64,15 +74,17 @@ namespace Mastery.Views
             InitializeComponent();
             DataContext = this;
             mainVM = mainWindow;
-            m_timer.Interval = 16;
-            m_timer.Elapsed += TickCreateButton;
-            m_timer.Start();
+            StartCreateButtonMonitor();
         }
 
-        private void TickCreateButton(object sender, ElapsedEventArgs e)
+        private async void StartCreateButtonMonitor ()
         {
-            if (string.IsNullOrEmpty(TaskText) || string.IsNullOrWhiteSpace(HoursValue)) { CanCreate = false; }
-            else { CanCreate = true; }
+            while(true)
+            {
+                if (string.IsNullOrEmpty(TaskText) || string.IsNullOrWhiteSpace(HoursValue)) { CanCreate = false; }
+                else { CanCreate = true; }
+                await Task.Delay(100);
+            }
         }
 
         private void MainMenu_MouseDown(object sender, MouseButtonEventArgs e)
@@ -91,6 +103,11 @@ namespace Mastery.Views
             e.Handled = TestForNumeric(e.Text);
         }
 
+        private void PreviewInitialHoursInput(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = TestForNumeric(e.Text);
+        }
+
         private static bool TestForNumeric(string text)
         {
             Regex regex = new Regex(@"[^\d]"); //regex that matches allowed text
@@ -102,7 +119,19 @@ namespace Mastery.Views
             ProjectModel project = new ProjectModel();
             project.Task = TaskText;
             HoursValue = Regex.Replace(HoursValue, @"\s+", "");
-            project.TargetHours = int.Parse(HoursValue);
+
+            int hoursValue = 0;
+            if (int.TryParse(HoursValue, out hoursValue))
+            {
+                project.TargetHours = hoursValue;
+            }
+
+            int initialHoursValue = 0;
+            if(int.TryParse(InitialHoursValue, out initialHoursValue))
+            {
+                project.ElapsedTime = initialHoursValue * 3600000;
+            }
+
             if (SaveSystem.Save(project, true))
             {
                 mainVM.CurrentProject = project;

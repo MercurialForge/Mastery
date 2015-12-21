@@ -1,23 +1,36 @@
 ﻿using Mastery.Utilities;
+using Mastery.Views;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Timers;
+using System.IO;
+using System.Threading;
 using System.Windows;
 using System.Windows.Input;
-using Mastery.Views;
-using System.IO;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace Mastery.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
-        #region Fields & Properties
+        #region Properties
         public ProjectModel CurrentProject
         {
-            get { return _projectModel; }
+            get { return m_projectModel; }
             set
             {
-                _projectModel = value;
+                m_projectModel = value;
+                m_previousHour = CurrentProject.CurrentHour;
+                IsMonitoringActive = CurrentProject.IsMonitoring; 
+                if (IsMonitoringActive) 
+                {
+                    DoProcessButton();
+                    ActivityIcon = (CurrentProject.Applications.Count == 0) ? m_error : m_inactive;
+                }else
+                {
+                    ActivityIcon = null;
+                }
                 OnPropertyChanged("TargetHours");
                 OnPropertyChanged("TaskTitle");
                 OnPropertyChanged("CurrentHour");
@@ -29,26 +42,19 @@ namespace Mastery.ViewModels
         {
             get { return CurrentProject.CurrentHour; }
         }
-        public double TargetHours
+        public bool IsMonitoringActive
         {
-            get { return CurrentProject.TargetHours; }
-        }
-        private double ElapsedTime
-        {
-            get { return CurrentProject.ElapsedTime; }
+            get { return m_isMonitoringActive; }
             set
             {
-                CurrentProject.ElapsedTime = value;
+                m_isMonitoringActive = value;
+                CurrentProject.IsMonitoring = m_isMonitoringActive;
+                OnPropertyChanged("IsMonitoringActive");
             }
         }
-        public double ProgressBarCurrentValue
+        public string TaskTitle
         {
-            get { return m_progressBarCurrentValue; }
-            set
-            {
-                m_progressBarCurrentValue = value;
-                OnPropertyChanged("ProgressBarCurrentValue");
-            }
+            get { return "Task: " + CurrentProject.Task; }
         }
         public string ButtonText
         {
@@ -71,32 +77,66 @@ namespace Mastery.ViewModels
                 OnPropertyChanged("DisplayedPercentage");
             }
         }
-        public string TaskTitle
+        public double TargetHours
         {
-            get { return "Task: " + CurrentProject.Task; }
+            get { return CurrentProject.TargetHours; }
         }
+        public double ProgressBarCurrentValue
+        {
+            get { return m_progressBarCurrentValue; }
+            set
+            {
+                m_progressBarCurrentValue = value;
+                OnPropertyChanged("ProgressBarCurrentValue");
+            }
+        }
+        public ImageSource ActivityIcon
+        {
+            get { return m_activityIcon; }
+            set
+            {
+                if (m_activityIcon == value) { return; }
+                m_activityIcon = value;
+                OnPropertyChanged("ActivityIcon");
+            }
+        }
+        #endregion
 
-        private ProjectModel _projectModel = new ProjectModel();
+        #region Fields
         private string m_buttonText = "Start";
         private string m_displayedPercentage = "0.000%";
+        private double ElapsedTime
+        {
+            get { return CurrentProject.ElapsedTime; }
+            set
+            {
+                CurrentProject.ElapsedTime = value;
+            }
+        }
         private double m_progressBarCurrentValue = 0;
-
-        private bool m_isTimerRunning = false;
+        private bool m_isMasteryActive;
+        private bool m_isMonitoringActive;
+        private Timer m_tickTimer;
+        private Timer m_backupTickTimer;
         private Stopwatch m_dtStopwatch = new Stopwatch();
-        private Timer m_intervalTimer = new Timer();
-        private Timer m_backupTimer = new Timer();
-        private DateTime m_beginning;
-        private Window m_mainWindow;
+        private ProjectModel m_projectModel = new ProjectModel();
+        private MainWindow m_mainWindow;
+        private DateTime m_previousDeltaQuery;
+        private int m_previousHour;
+        private UserActivityTimer m_activityTimer;
+        private ImageSource m_activityIcon;
+        private ImageSource m_active;
+        private ImageSource m_inactive;
+        private ImageSource m_error;
         #endregion
 
         public MainWindowViewModel(Window mainWindow)
         {
             Initialize();
-            m_mainWindow = mainWindow;
+            m_mainWindow = (MainWindow)mainWindow;
         }
 
         #region Commands
-        // Save the project to a file
         public ICommand Save
         {
             get { return new RelayCommand(x => DoSave()); }
@@ -108,13 +148,17 @@ namespace Mastery.ViewModels
                 if (File.Exists(Properties.Settings.Default.LastLoadPath))
                 {
                     SaveSystem.SaveNoPrompt(CurrentProject);
+                    return;
                 }
-                return;
+                else
+                {
+                    SaveSystem.Save(CurrentProject);
+                    return;
+                }
             }
             SaveSystem.Save(CurrentProject);
         }
 
-        // Save the project to a new file
         public ICommand SaveAs
         {
             get { return new RelayCommand(x => DoSaveAs()); }
@@ -124,7 +168,6 @@ namespace Mastery.ViewModels
             SaveSystem.Save(CurrentProject);
         }
 
-        // Load project from a file
         public ICommand Load
         {
             get { return new RelayCommand(x => DoLoad()); }
@@ -135,10 +178,9 @@ namespace Mastery.ViewModels
             if (project != null)
             {
                 CurrentProject = project;
-                UpdateView();
-                if (m_isTimerRunning)
+                if (m_isMasteryActive)
                 {
-                    ToggleButton();
+                    DoProcessButton();
                 }
             }
         }
@@ -150,6 +192,17 @@ namespace Mastery.ViewModels
         private void DoMinimize()
         {
             m_mainWindow.WindowState = WindowState.Minimized;
+            m_mainWindow.Hide();
+        }
+
+        public ICommand RestoreWindow
+        {
+            get { return new RelayCommand(x => DoRestoreWindow()); }
+        }
+        private void DoRestoreWindow()
+        {
+            m_mainWindow.Show();
+            m_mainWindow.WindowState = WindowState.Normal;
         }
 
         public ICommand Details
@@ -166,13 +219,12 @@ namespace Mastery.ViewModels
         {
             get { return new RelayCommand(x => ShowAbout()); }
         }
-        public void ShowAbout ()
+        public void ShowAbout()
         {
             AboutWindow about = new AboutWindow();
             about.Show();
         }
 
-        // Shutdown the app and do so safely with saving
         public ICommand Shutdown
         {
             get { return new RelayCommand(x => DoShutdown()); }
@@ -191,8 +243,8 @@ namespace Mastery.ViewModels
                     MessageBoxResult result = MessageBox.Show(
                         "The file Mastery was writing to has been Moved or Deleted. Please Save!"
                         + Environment.NewLine
-                        + Environment.NewLine 
-                        + "OK : to Save" + Environment.NewLine 
+                        + Environment.NewLine
+                        + "OK : to Save" + Environment.NewLine
                         + "Cancel : to Ignore", "FILE NOT FOUND", MessageBoxButton.OKCancel);
                     if (result == MessageBoxResult.OK) { SaveSystem.Save(CurrentProject); }
                     else { Properties.Settings.Default.HasLoadPath = false; }
@@ -210,82 +262,137 @@ namespace Mastery.ViewModels
             Application.Current.Shutdown();
         }
 
-        // Create a new project
         public ICommand NewProject
         {
-            get { return new RelayCommand(x => CreateNewProject()); }
+            get { return new RelayCommand(x => ShowNewProject()); }
         }
-        private void CreateNewProject()
+        private void ShowNewProject()
         {
             NewProject newProjectWindow = new NewProject(this);
             newProjectWindow.Show();
         }
 
-        //// Reset everything
-        //public ICommand Clear
-        //{
-        //    get { return new RelayCommand(x => DoClear()); }
-        //}
-        //private void DoClear()
-        //{
-        //    // Stop timer
-        //    if (m_isTimerRunning) { ToggleButton(); }
+        public ICommand ShowMonitorControl
+        {
+            get { return new RelayCommand(x => DoShowMonitorControl()); }
+        }
+        private void DoShowMonitorControl()
+        {
+            MonitorWindow monitor = new MonitorWindow(this);
+            monitor.Show();
+        }
 
-        //    // Reset visuals to default
-        //    ButtonText = "Start";
-        //    DisplayedPercentage = "0.0000%";
-        //    ProgressBarCurrentValue = 0;
+        public ICommand ToggleMonitoring
+        {
+            get { return new RelayCommand(c => DoToggleMonitoring()); }
+        }
+        private void DoToggleMonitoring()
+        {
+            if (IsMonitoringActive)
+            {
+                if (!m_isMasteryActive)
+                {
+                    DoProcessButton();
+                }
+                if (CurrentProject.Applications.Count == 0)
+                {
+                    MessageBoxResult result = MessageBox.Show("Monitoring is useless without at least one application to monitor. Please select one in the follower menu.", "Select Apps to Monitor", MessageBoxButton.OK);
+                    DoShowMonitorControl();
+                }
+            }
+            else
+            {
+                ActivityIcon = null;
+                if (m_isMasteryActive)
+                {
+                    DoProcessButton();
+                }
+            }
 
-        //    // Load default project
-        //    CurrentProject = new ProjectModel();
-        //    Properties.Settings.Default.Reset();
+        }
 
-        //    // Clear dirty values
-        //    UpdateView();
-        //}
-
-        // Process the button input
         public ICommand ProcessButton
         {
-            get { return new RelayCommand(x => ToggleButton()); }
+            get { return new RelayCommand(x => DoProcessButton()); }
         }
-        private void ToggleButton()
+        private void DoProcessButton()
         {
-            if (m_isTimerRunning)
+            if (m_isMasteryActive)
             {
-                ButtonText = "Continue";
-                m_dtStopwatch.Stop();
-                m_intervalTimer.Enabled = false;
-                m_isTimerRunning = false;
+                ButtonText = "Resume";
+                m_isMasteryActive = false;
             }
             else
             {
                 ButtonText = "Pause";
-                m_dtStopwatch.Start();
-                m_intervalTimer.Enabled = true;
-                m_isTimerRunning = true;
-                m_beginning = DateTime.Now;
+                m_isMasteryActive = true;
             }
         }
         #endregion
 
-        private void Tick(Object source, System.Timers.ElapsedEventArgs e)
+        #region Private Methods
+        private void Tick(object userState)
         {
-            // Delta Time
-            CurrentProject.ElapsedTime += (DateTime.Now - m_beginning).TotalMilliseconds;
-            m_beginning = DateTime.Now;
+            if (!m_isMasteryActive)
+            {
+                m_previousDeltaQuery = DateTime.Now;
+                return;
+            }
 
-            // Get Elapsed Time 
+            if (IsMonitoringActive)
+            {
+                if (UserIsActive())
+                {
+                    ProcessTick();
+                }
+                m_previousDeltaQuery = DateTime.Now;
+            }
+            else
+            {
+                ProcessTick();
+                m_previousDeltaQuery = DateTime.Now;
+            }
+        }
+
+        private bool UserIsActive()
+        {
+            if(CurrentProject.Applications.Count == 0)
+            {
+                ActivityIcon = m_error;
+                return false;
+            }
+
+            if (m_activityTimer.UserActiveState == UserActivityState.Inactive || m_activityTimer.UserActiveState == UserActivityState.Unknown)
+            {
+                ActivityIcon = m_inactive;
+                return false;
+            }
+
+            string activeProcess = Win32Helpers.GetForegroundProcessName();
+            foreach (string application in CurrentProject.Applications)
+            {
+                if (application == activeProcess)
+                {
+                    ActivityIcon = m_active;
+                    return true;
+                }
+            }
+            ActivityIcon = m_inactive;
+            return false;
+        }
+
+        private void ProcessTick()
+        {
+            double deltaTime = (DateTime.Now - m_previousDeltaQuery).TotalMilliseconds;
+            CurrentProject.ElapsedTime += deltaTime;
+            m_previousDeltaQuery = DateTime.Now;
+
+            // Set progress bar value
             double target = CurrentProject.TargetHours * 3600000.0;
             ProgressBarCurrentValue = (CurrentProject.ElapsedTime / target) * 100;
 
-            // Update
             UpdateView();
-        }
-
-        private void TickBackUp(Object source, System.Timers.ElapsedEventArgs e)
-        {
-            Properties.Settings.Default.Save();
+            ProcessHourChangePopup();
         }
 
         private void UpdateView()
@@ -297,13 +404,69 @@ namespace Mastery.ViewModels
             OnPropertyChanged("TargetHours");
         }
 
-        private void Initialize()
+        private void ProcessHourChangePopup()
+        {
+            if (m_previousHour != CurrentProject.CurrentHour)
+            {
+                m_previousHour = CurrentProject.CurrentHour;
+
+                // Invoked delegate on main thread for UI calls
+                Application.Current.Dispatcher.Invoke((Action)delegate { ShowHourPlusPopUp(); });
+            }
+        }
+
+        private void ShowHourPlusPopUp()
+        {
+            if (Properties.Settings.Default.ShowPopups)
+            {
+                SystemTrayPopup balloon = new SystemTrayPopup();
+                balloon.PopupText = "+1 Hour! " + CleverDialog.Next();
+                m_mainWindow.ShowTaskbarPopup(balloon);
+            }
+        }
+
+        private void TickAutoSave(object userState)
         {
             if (Properties.Settings.Default.HasLoadPath)
             {
                 if (File.Exists(Properties.Settings.Default.LastLoadPath))
                 {
+                    SaveSystem.SaveNoPrompt(CurrentProject);
+                }
+            }
+
+            Properties.Settings.Default.Save();
+        }
+
+        private void Initialize()
+        {
+            m_active = new BitmapImage(new Uri("pack://application:,,,/Mastery;component/Resources/Active.ico"));
+            m_inactive = new BitmapImage(new Uri("pack://application:,,,/Mastery;component/Resources/Inactive.ico"));
+            m_error = new BitmapImage(new Uri("pack://application:,,,/Mastery;component/Resources/Error.ico"));
+            ActivityIcon = null;
+
+            LoadLastActiveMPF();
+
+            m_activityTimer = new UserActivityTimer(10000);
+            m_activityTimer.Enable();
+
+            // Set default tick timer
+            m_tickTimer = new Timer(new TimerCallback(this.Tick), null, 0, 16);
+            m_previousDeltaQuery = DateTime.Now;
+
+            // Set auto save timer
+            m_backupTickTimer = new Timer(new TimerCallback(this.TickAutoSave), null, 0, 5000);
+        }
+
+        private void LoadLastActiveMPF()
+        {
+            // Load previous project if expected; warn if missing.
+            if (Properties.Settings.Default.HasLoadPath)
+            {
+                if (File.Exists(Properties.Settings.Default.LastLoadPath))
+                {
                     CurrentProject = SaveSystem.Load(Properties.Settings.Default.LastLoadPath);
+                    m_previousHour = CurrentProject.CurrentHour;
                 }
                 else
                 {
@@ -314,19 +477,7 @@ namespace Mastery.ViewModels
                 }
             }
             UpdateView();
-
-            m_intervalTimer.Interval = 1;
-            m_intervalTimer.AutoReset = true;
-            m_intervalTimer.Elapsed += Tick;
-
-            m_backupTimer.Interval = 5000; // 5 seconds
-            m_backupTimer.AutoReset = true;
-            m_backupTimer.Elapsed += TickBackUp;
-            m_backupTimer.Start();
-
-            GC.KeepAlive(m_intervalTimer);
-            GC.KeepAlive(m_backupTimer);
-            GC.KeepAlive(m_dtStopwatch);
         }
+        #endregion
     }
 }

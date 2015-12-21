@@ -67,6 +67,9 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Hardcodet.Wpf.TaskbarNotification">
+      <HintPath>..\packages\Hardcodet.NotifyIcon.Wpf.1.0.5\lib\net45\Hardcodet.Wpf.TaskbarNotification.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -88,14 +91,24 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Utilities\CleverDialog.cs" />
+    <Compile Include="Utilities\UserActivityTimer.cs" />
+    <Compile Include="Utilities\WeightedBool.cs" />
+    <Compile Include="Utilities\Win32Helpers.cs" />
     <Compile Include="Views\AboutWindow.xaml.cs">
       <DependentUpon>AboutWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\DetailsPanel.xaml.cs">
       <DependentUpon>DetailsPanel.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\MonitorWindow.xaml.cs">
+      <DependentUpon>MonitorWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\NewProject.xaml.cs">
       <DependentUpon>NewProject.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\SystemTrayPopup.xaml.cs">
+      <DependentUpon>SystemTrayPopup.xaml</DependentUpon>
     </Compile>
     <Page Include="Views\AboutWindow.xaml">
       <SubType>Designer</SubType>
@@ -113,7 +126,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Utilities\ValueToString.cs" />
     <Compile Include="Models\ProjecModel.cs" />
     <Compile Include="Utilities\RelayCommand.cs" />
     <Compile Include="Utilities\SaveSystem.cs" />
@@ -123,7 +135,15 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Views\MonitorWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\NewProject.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\SystemTrayPopup.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -147,6 +167,7 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="Mastery_TemporaryKey.pfx" />
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -183,7 +204,11 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Resources\Active.ico" />
+    <Resource Include="Resources\Error.ico" />
+    <Resource Include="Resources\Inactive.ico" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
