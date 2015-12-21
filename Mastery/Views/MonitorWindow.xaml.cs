@@ -121,5 +121,10 @@ namespace Mastery.Views
                 Application.Current.Dispatcher.Invoke((Action)delegate { ActiveApps.Remove(s); });
             }
         }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            m_pullAppsTimer.Dispose();
+        }
     }
 }
